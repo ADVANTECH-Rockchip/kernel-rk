@@ -1,0 +1,257 @@
+From fb16e56d7998da7a3069573b6f21b020418c1da6 Mon Sep 17 00:00:00 2001
+From: Xubilv <xbl@rock-chips.com>
+Date: Wed, 11 May 2016 16:19:31 +0800
+Subject: [PATCH] 3288: enable mipi&tp
+
+Signed-off-by: Xubilv <xbl@rock-chips.com>
+---
+ arch/arm/boot/dts/rk3288-tb_8846.dts    | 25 ++++++++---------
+ arch/arm/configs/rockchip_defconfig     | 11 ++++----
+ drivers/input/touchscreen/Kconfig       |  2 ++
+ drivers/input/touchscreen/gt9xx/Kconfig | 13 +++++++++
+ drivers/input/touchscreen/gt9xx/gt9xx.c | 49 +++++++++++++++------------------
+ 5 files changed, 54 insertions(+), 46 deletions(-)
+ mode change 100755 => 100644 arch/arm/configs/rockchip_defconfig
+ create mode 100755 drivers/input/touchscreen/gt9xx/Kconfig
+
+diff --git a/arch/arm/boot/dts/rk3288-tb_8846.dts b/arch/arm/boot/dts/rk3288-tb_8846.dts
+index 230a75d..d46a40e 100755
+--- a/arch/arm/boot/dts/rk3288-tb_8846.dts
++++ b/arch/arm/boot/dts/rk3288-tb_8846.dts
+@@ -2,7 +2,7 @@
+
+ #include "rk3288.dtsi"
+ //#include "lcd-b101ew05.dtsi"
+-#include "lcd-F402.dtsi"
++#include "lcd-tv080wum-mipi.dtsi"
+ #include "vtl_ts_sdk8846.dtsi"
+ #include "rk3288-cif-sensor.dtsi"
+ / {
+@@ -586,18 +586,13 @@
+     status = "okay";
+
+     ts@01 {
+-        compatible = "ct,vtl_ts";
+-        reg = <0x01>;
+-        screen_max_x = <1536>;
+-        screen_max_y = <2048>;
+-        xy_swap = <1>;
+-        x_reverse = <0>;
+-        y_reverse = <0>;
+-        x_mul = <2>;
+-        y_mul = <2>;
+-        bin_ver = <0>;
+-        irq_gpio_number = <&gpio7 GPIO_A6 IRQ_TYPE_LEVEL_LOW>;
+-        rst_gpio_number = <&gpio7 GPIO_A5 GPIO_ACTIVE_HIGH>;
++        compatible = "goodix,gt9xx";
++        reg = <0x14>;
++        touch-gpio = <&gpio7 GPIO_A6 IRQ_TYPE_LEVEL_LOW>;
++        reset-gpio = <&gpio7 GPIO_A5 GPIO_ACTIVE_HIGH>;
++        max-x = <1200>;
++        max-y = <1900>;
++        tp-size = <911>;
+     };
+ };
+
+@@ -605,6 +600,10 @@
+     status = "disable";
+ };
+
++&dsihost0 {
++    status = "okay";
++};
++
+ &fb {
+     rockchip,disp-mode = <DUAL>;
+     rockchip,uboot-logo-on = <1>;
+diff --git a/arch/arm/configs/rockchip_defconfig b/arch/arm/configs/rockchip_defconfig
+old mode 100755
+new mode 100644
+index c48459b..fd08182
+--- a/arch/arm/configs/rockchip_defconfig
++++ b/arch/arm/configs/rockchip_defconfig
+@@ -218,11 +218,6 @@ CONFIG_ZRAM=y
+ CONFIG_BLK_DEV_LOOP=y
+ CONFIG_UID_STAT=y
+ CONFIG_SRAM=y
+-CONFIG_MPU_SENSORS_TIMERIRQ=y
+-CONFIG_INV_SENSORS=y
+-CONFIG_MPU_SENSORS_MPU6050B1=y
+-CONFIG_MPU_SENSORS_MPU6050_ACCEL=y
+-CONFIG_MPU_SENSORS_AK8963=y
+ CONFIG_SCSI=y
+ CONFIG_SCSI_TGT=y
+ CONFIG_BLK_DEV_SD=y
+@@ -318,7 +313,8 @@ CONFIG_TABLET_USB_KBTAB=y
+ CONFIG_TABLET_USB_WACOM=y
+ CONFIG_INPUT_TOUCHSCREEN=y
+ CONFIG_TOUCHSCREEN_ZET62XX=y
+-CONFIG_TOUCHSCREEN_GT8XX=y
++CONFIG_TOUCHSCREEN_GT9XX=y
++CONFIG_GT911=y
+ CONFIG_TOUCHSCREEN_VTL_CT36X=y
+ CONFIG_INPUT_MISC=y
+ CONFIG_INPUT_KEYCHORD=y
+@@ -416,11 +412,14 @@ CONFIG_LCDC_RK3188=y
+ CONFIG_LCDC_RK3288=y
+ CONFIG_LCDC_RK3036=y
+ CONFIG_LCDC_RK312X=y
++CONFIG_LCD_MIPI=y
+ CONFIG_RK_TRSM=y
+ CONFIG_RK32_LVDS=y
+ CONFIG_RK31XX_LVDS=y
+ CONFIG_DP_ANX6345=y
+ CONFIG_RK32_DP=y
++CONFIG_MIPI_DSI=y
++CONFIG_RK32_MIPI_DSI=y
+ CONFIG_RK_HDMI=y
+ CONFIG_RK_TVENCODER=y
+ CONFIG_RK1000_TVOUT=y
+diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
+index 45787d9..d25e452 100755
+--- a/drivers/input/touchscreen/Kconfig
++++ b/drivers/input/touchscreen/Kconfig
+@@ -38,6 +38,8 @@ config TOUCHSCREEN_GT9XX
+       code includes that in its table of IIC devices.
+       If unsure, say N.
+
++source "drivers/input/touchscreen/gt9xx/Kconfig"
++
+ config TOUCHSCREEN_CT36X_TS
+     tristate "CT36X touchscreens support"
+
+diff --git a/drivers/input/touchscreen/gt9xx/Kconfig b/drivers/input/touchscreen/gt9xx/Kconfig
+new file mode 100755
+index 0000000..25ea147
+--- /dev/null
++++ b/drivers/input/touchscreen/gt9xx/Kconfig
+@@ -0,0 +1,13 @@
++if TOUCHSCREEN_GT9XX
++
++config GT911
++    bool "GT911 Support"
++    default n
++
++    ---help---
++        Say Y here if you have a touchscreen interface using the
++        two goodix gt911, and your board-specific initialization
++        code includes that in its table of IIC devices.
++        If unsure, say N.
++
++endif
+diff --git a/drivers/input/touchscreen/gt9xx/gt9xx.c b/drivers/input/touchscreen/gt9xx/gt9xx.c
+index 1bac1f8..6ad3902 100755
+--- a/drivers/input/touchscreen/gt9xx/gt9xx.c
++++ b/drivers/input/touchscreen/gt9xx/gt9xx.c
+@@ -411,15 +411,15 @@ static void gtp_touch_down(struct goodix_ts_data* ts,s32 id,s32 x,s32 y,s32 w)
+         GTP_SWAP(x, y);
+     }
+
+-    if (!bgt911) {
+-        if(mGtp_X_Reverse){
+-            x = ts->abs_x_max - x;
+-        }
+-    
+-        if(mGtp_Y_Reverse){
+-            y = ts->abs_y_max - y;
+-        }
+-    }
++#ifndef CONFIG_GT911
++    if(mGtp_X_Reverse){
++        x = ts->abs_x_max - x;
++    }
++
++    if(mGtp_Y_Reverse){
++        y = ts->abs_y_max - y;
++    }
++#endif
+
+ #if GTP_ICS_SLOT_REPORT
+     input_mt_slot(ts->input_dev, id);
+@@ -1420,11 +1420,11 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
+         send_cfg_buf[0] = gtp_dat_8_9;
+         cfg_info_len[0] =  CFG_GROUP_LEN(gtp_dat_8_9);
+     }
+-    
+-    if (bgt911) {
+-        send_cfg_buf[0] = gtp_dat_gt11;
+-        cfg_info_len[0] =  CFG_GROUP_LEN(gtp_dat_gt11);
+-    }
++
++#ifdef CONFIG_GT911
++    send_cfg_buf[0] = gtp_dat_gt11;
++    cfg_info_len[0] =  CFG_GROUP_LEN(gtp_dat_gt11);
++#endif
+
+     GTP_DEBUG_FUNC();
+     GTP_DEBUG("Config Groups\' Lengths: %d, %d, %d, %d, %d, %d", 
+@@ -1909,8 +1909,8 @@ static int goodix_ts_early_suspend(struct tp_device *tp_d)
+ {
+     struct goodix_ts_data *ts;
+     s8 ret = -1;
+-    struct regulator *regulator_tp = NULL;
+-    int reg = 0;
++    //struct regulator *regulator_tp = NULL;
++    //int reg = 0;
+
+     ts = container_of(tp_d, struct goodix_ts_data, tp);
+     GTP_DEBUG_FUNC();
+@@ -1942,6 +1942,7 @@ static int goodix_ts_early_suspend(struct tp_device *tp_d)
+     // to avoid waking up while not sleeping
+     //  delay 48 + 10ms to ensure reliability
+     msleep(58);
++/*
+     regulator_tp = regulator_get(NULL,"vcc_tp");
+     if(regulator_tp ==NULL)
+     {
+@@ -1954,7 +1955,7 @@ static int goodix_ts_early_suspend(struct tp_device *tp_d)
+         msleep(10);
+     }
+     regulator_put(regulator_tp);
+-    msleep(20);
++    msleep(20); */
+     return 0;
+ }
+
+@@ -1970,13 +1971,13 @@ static int goodix_ts_early_resume(struct tp_device *tp_d)
+ {
+     struct goodix_ts_data *ts;
+     s8 ret = -1;
+-    struct regulator *regulator_tp = NULL;
+-    int reg = 0;
++    //struct regulator *regulator_tp = NULL;
++    //int reg = 0;
+     ts = container_of(tp_d, struct goodix_ts_data, tp);
+     GTP_DEBUG_FUNC();
+
+     GTP_INFO("System resume.");
+-
++/*
+     regulator_tp = regulator_get(NULL, "vcc_tp");
+     if(regulator_tp ==NULL)
+     {
+@@ -1990,7 +1991,7 @@ static int goodix_ts_early_resume(struct tp_device *tp_d)
+     }
+     regulator_put(regulator_tp);
+     msleep(10);
+-
++*/
+     ret = gtp_wakeup_sleep(ts);
+
+ #if GTP_GESTURE_WAKEUP
+@@ -2612,12 +2613,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
+         mGtpChange_X2Y = TRUE;
+         mGtp_X_Reverse = TRUE;
+         mGtp_Y_Reverse = FALSE;
+-    } else if (val == 911) {
+-        m89or101 = FALSE;
+-        bgt911 = TRUE;
+-        mGtpChange_X2Y = TRUE;
+-        mGtp_X_Reverse = FALSE;
+-        mGtp_Y_Reverse = TRUE;
+     }
+
+     ts->irq_pin = of_get_named_gpio_flags(np, "touch-gpio", 0, (enum of_gpio_flags *)(&ts->irq_flags));
+-- 
+1.9.1
+

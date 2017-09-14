@@ -47,6 +47,8 @@
 #define S35390A_INT2_MODE_ALARM		0x40
 #define S35390A_INT2_MODE_PMIN_EDG	0x20
 
+#define RTC_I2C_RATE 100*1000
+
 static const struct i2c_device_id s35390a_id[] = {
 	{ "s35390a", 0 },
 	{ }
@@ -66,7 +68,10 @@ static int s35390a_set_reg(struct s35390a *s35390a, int reg, char *buf, int len)
 		{
 			.addr = client->addr,
 			.len = len,
-			.buf = buf
+			.buf = buf,
+#ifdef CONFIG_I2C_ROCKCHIP_COMPAT
+			.scl_rate = RTC_I2C_RATE
+#endif
 		},
 	};
 
@@ -84,7 +89,10 @@ static int s35390a_get_reg(struct s35390a *s35390a, int reg, char *buf, int len)
 			.addr = client->addr,
 			.flags = I2C_M_RD,
 			.len = len,
-			.buf = buf
+			.buf = buf,
+#ifdef CONFIG_I2C_ROCKCHIP_COMPAT
+			.scl_rate = RTC_I2C_RATE
+#endif
 		},
 	};
 

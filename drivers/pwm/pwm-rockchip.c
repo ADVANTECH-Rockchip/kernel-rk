@@ -18,7 +18,7 @@
 #include <linux/rockchip/iomap.h>
 
 
-static int pwm_dbg_level = 0;
+static int pwm_dbg_level = 1;
 module_param_named(dbg_level, pwm_dbg_level, int, 0644);
 #define DBG( args...) \
 	do { \
@@ -521,7 +521,9 @@ static int  rk_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 {
 	struct rk_pwm_chip *pc = to_rk_pwm_chip(chip);
 	int ret;
-	
+	dev_info(chip->dev, "%s,pwm_id:%d,npwm:%d,of_pwm_n_cells:%d\n",__func__,
+		pc->pwm_id,chip->npwm,chip->of_pwm_n_cells);
+
 	ret = clk_enable(pc->pclk);
 	if (ret)
 		return ret;
@@ -552,6 +554,7 @@ static int rk_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct rk_pwm_chip *pc = to_rk_pwm_chip(chip);
 	int ret = 0;
+	dev_info(chip->dev, "%s\n",__func__);
 
 	ret = clk_enable(pc->clk);
 	if (ret)
@@ -582,6 +585,7 @@ static void rk_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct rk_pwm_chip *pc = to_rk_pwm_chip(chip);
 	int ret;
+	dev_info(chip->dev, "%s\n",__func__);
 
 	ret = clk_enable(pc->pclk);
 	if (ret)
@@ -656,6 +660,7 @@ static int rk_pwm_probe(struct platform_device *pdev)
 	struct rk_pwm_chip *pc;
 	int ret, count;
 
+	dev_info(&pdev->dev, "rk_pwm_probe+++\n");
 	if (!of_id){
 		dev_err(&pdev->dev, "failed to match device\n");
 		return -ENODEV;
@@ -750,7 +755,10 @@ static int rk_pwm_probe(struct platform_device *pdev)
 		printk("failed to add pwm\n");
 		goto err_hclk_lcdc;
 	}
+	dev_info(&pdev->dev, "%s,pwm_id:%d,npwm:%d,of_pwm_n_cells:%d\n",__func__,
+			pc->pwm_id,pc->chip.npwm,pc->chip.of_pwm_n_cells);
 
+	dev_info(&pdev->dev, "rk_pwm_probe---\n");
 	DBG("%s end\n", __func__);
 	return 0;
 

@@ -23,6 +23,7 @@
 #include <linux/kernel.h>
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
+#include <linux/phy.h>
 #include <linux/rockchip/common.h>
 #include <linux/rockchip/cpu.h>
 #include <linux/rockchip/cpu_axi.h>
@@ -101,6 +102,98 @@ static struct map_desc rk3288_io_desc[] __initdata = {
 	RK_DEVICE(RK3288_HDMI_VIRT, RK3288_HDMI_PHYS, SZ_4K),
 	RK_DEVICE(RK_TIMER_VIRT, RK3288_TIMER6_PHYS, RK3288_TIMER_SIZE),
 };
+
+#define DP83867_DEVADDR		0x1f
+#define DP83867_RGMIICTL	0x0032
+#define DP83867_RGMIIDCTL	0x0086
+#define DP83867_RGMII_TX_CLK_DELAY_EN		BIT(1)
+#define DP83867_RGMII_RX_CLK_DELAY_EN		BIT(0)
+#define DP83867_RGMII_TX_CLK_DELAY_SHIFT	4
+
+static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,
+				  int devad, int addr)
+{
+	int value = -1;
+
+	/* Write the desired MMD Devad */
+	phy_write(phydev,  0x0d, devad);
+
+	/* Write the desired MMD register address */
+	phy_write(phydev,  0x0e, prtad);
+
+	/* Select the Function : DATA with no post increment */
+	phy_write(phydev,  0x0d, (devad | 0x4000));
+
+	/* Read the content of the MMD's selected register */
+	value = phy_read(phydev,  0x0e);
+	return value;
+}
+
+void phy_write_mmd_indirect(struct phy_device *phydev, int prtad,
+			    int devad, int addr, u32 data)
+{
+	/* Write the desired MMD Devad */
+	phy_write(phydev,  0x0d, devad);
+
+	/* Write the desired MMD register address */
+	phy_write(phydev,  0x0e, prtad);
+
+	/* Select the Function : DATA with no post increment */
+	phy_write(phydev,  0x0d, (devad | 0x4000));
+
+	/* Write the data into MMD's selected register */
+	phy_write(phydev,  0x0e, data);
+}
+
+static int dp83867_phy_fixup(struct phy_device *phydev)
+{
+	unsigned int val, delay;
+
+	printk("%s,phydev->addr:%d,phydev->interface:%d....\n",__func__,phydev->addr,phydev->interface);
+	if (phydev->interface == PHY_INTERFACE_MODE_RGMII){
+		val = phy_read_mmd_indirect(phydev, DP83867_RGMIICTL,
+								DP83867_DEVADDR, phydev->addr);
+#if 1
+		val |= (DP83867_RGMII_TX_CLK_DELAY_EN |
+			DP83867_RGMII_RX_CLK_DELAY_EN);
+
+		phy_write_mmd_indirect(phydev, DP83867_RGMIICTL,
+					   DP83867_DEVADDR, phydev->addr, val);
+
+		delay = (0x7 | (0x9 << DP83867_RGMII_TX_CLK_DELAY_SHIFT));
+
+		phy_write_mmd_indirect(phydev, DP83867_RGMIIDCTL,
+				       DP83867_DEVADDR, phydev->addr, delay);
+		val = phy_read_mmd_indirect(phydev, 0x0170,
+								DP83867_DEVADDR, phydev->addr);
+		printk("%s,CLK_O_SEL:0x%x\n",__func__,val);
+		val &= ~(0x1f<<8);
+		val |= (0x4<<8);
+		phy_write_mmd_indirect(phydev, 0x0170,
+					   DP83867_DEVADDR, phydev->addr, val);
+		#else
+		delay = 0;
+		phy_write(phydev,  0x00, 0x40);
+		phy_write_mmd_indirect(phydev, 0x170,
+				       DP83867_DEVADDR, phydev->addr, 0xc01);
+		phy_write(phydev,  0x16, 0xd001);
+		phy_write_mmd_indirect(phydev, 0x86,
+				       DP83867_DEVADDR, phydev->addr, 0x77);
+		phy_write_mmd_indirect(phydev, 0x32,
+				       DP83867_DEVADDR, phydev->addr, 0xd3);
+		#endif
+	}
+
+	return 0;
+}
+
+static void __init rk3288_gmac_phy_init(void)
+{
+	if (IS_BUILTIN(CONFIG_PHYLIB)) {
+		phy_register_fixup_for_uid(0x2000a231, 0xfffffff0,
+				dp83867_phy_fixup);
+	}
+}
 
 static void __init rk3288_boot_mode_init(void)
 {
@@ -570,6 +663,7 @@ static void __init rk3288_init_late(void)
 #endif
 	if (rockchip_jtag_enabled)
 		clk_prepare_enable(clk_get_sys(NULL, "clk_jtag"));
+	rk3288_gmac_phy_init();
 }
 
 DT_MACHINE_START(RK3288_DT, "Rockchip RK3288 (Flattened Device Tree)")

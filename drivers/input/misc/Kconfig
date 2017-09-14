@@ -670,4 +670,9 @@ config INPUT_XEN_KBDDEV_FRONTEND
 	  To compile this driver as a module, choose M here: the
 	  module will be called xen-kbdfront.
 
+config GPIO_CTRL_ADV
+	tristate "GPIO timing control for advantech"
+	depends on GPIOLIB
+	help
+	  This driver implements support for GPIO timing.
 endif

@@ -88,6 +88,10 @@ choice
 		bool "AP6210"
 		depends on RKWIFI
 
+        config AP6212
+                bool "AP6212"
+                depends on RKWIFI
+
 	config AP6234
 		bool "AP6234"
 		depends on RKWIFI
@@ -98,6 +102,10 @@ choice
 
 	config AP6335
 		bool "AP6335"
+		depends on RKWIFI
+
+	config AP6354
+		bool "AP6354"
 		depends on RKWIFI
 
 	config AP6441
@@ -131,7 +139,7 @@ choice
 
 	config RKWIFI_26M
     	bool "26M"
-	    depends on RKWIFI && !AP6335 && !AP6234 && !AP6441
+	    depends on RKWIFI && !AP6335 && !AP6234 && !AP6441 && !AP6354
 
 	config RKWIFI_24M
     	bool "24M"

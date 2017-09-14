@@ -142,6 +142,7 @@ static u64 gmac_dmamask = DMA_BIT_MASK(32);
 static void SET_RGMII(struct bsp_priv *bsp_priv, int type,
 		      int tx_delay, int rx_delay)
 {
+printk("++++++%s+++++++\n",__func__);
 	pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_PHY_INTF_SEL_RGMII, RK3288_GRF_SOC_CON1);
@@ -199,6 +200,7 @@ static void SET_RGMII(struct bsp_priv *bsp_priv, int type,
 
 static void SET_RMII(struct bsp_priv *bsp_priv, int type)
 {
+printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_PHY_INTF_SEL_RMII, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_RMII_MODE, RK3288_GRF_SOC_CON1);
@@ -248,6 +250,7 @@ static void SET_RMII(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RGMII_10M(struct bsp_priv *bsp_priv, int type)
 {
+	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_2_5M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -279,6 +282,7 @@ static void SET_RGMII_10M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RGMII_100M(struct bsp_priv *bsp_priv, int type)
 {
+	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_25M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -310,6 +314,7 @@ static void SET_RGMII_100M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RGMII_1000M(struct bsp_priv *bsp_priv, int type)
 {
+	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_125M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -341,6 +346,7 @@ static void SET_RGMII_1000M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RMII_10M(struct bsp_priv *bsp_priv, int type)
 {
+	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_RMII_CLK_2_5M, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_SPEED_10M, RK3288_GRF_SOC_CON1);
@@ -394,6 +400,7 @@ static void SET_RMII_10M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RMII_100M(struct bsp_priv *bsp_priv, int type)
 {
+	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_RMII_CLK_25M, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_SPEED_100M, RK3288_GRF_SOC_CON1);

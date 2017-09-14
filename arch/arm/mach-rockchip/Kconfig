@@ -25,4 +25,11 @@ config ARCH_ROCKCHIP
 	select ARM_ERRATA_821420 if !ARM_TRUSTZONE
 	select MFD_SYSCON
 
+if ARCH_ROCKCHIP
+
+config ARCH_ADVANTECH
+	bool "Support Advantech board"
+
+endif
+
 source "arch/arm/mach-rockchip/Kconfig.common"

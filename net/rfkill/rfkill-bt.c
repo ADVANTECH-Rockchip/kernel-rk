@@ -21,6 +21,7 @@
 #include <linux/rfkill.h>
 #include <linux/init.h>
 #include <linux/slab.h>
+#include <asm/gpio.h>
 #include <linux/delay.h>
 #include <linux/rfkill-bt.h>
 #include <linux/rfkill-wlan.h>
@@ -95,6 +96,8 @@ static const char bt_name[] =
     #else
         "ap6210_24M"
     #endif
+#elif defined(CONFIG_AP6212)
+        "ap6212"
 #elif defined(CONFIG_AP6330)
 		"ap6330"
 #elif defined(CONFIG_AP6476)
@@ -105,6 +108,10 @@ static const char bt_name[] =
         "ap6441"
 #elif defined(CONFIG_AP6335)
         "ap6335"
+#elif defined(CONFIG_AP6354)
+        "ap6354" 
+#elif defined(CONFIG_AP6356)
+        "ap6356"                 
 #elif defined(CONFIG_GB86302I)
         "gb86302i"
 #else
@@ -263,10 +270,10 @@ int rfkill_get_bt_power_state(int *power, bool *toggle)
 
 static int rfkill_rk_set_power(void *data, bool blocked)
 {
-	struct rfkill_rk_data *rfkill = data;
-    struct rfkill_rk_gpio *poweron = &rfkill->pdata->poweron_gpio;
-    struct rfkill_rk_gpio *reset = &rfkill->pdata->reset_gpio;
-#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335)
+     struct rfkill_rk_data *rfkill = data;
+     struct rfkill_rk_gpio *poweron = &rfkill->pdata->poweron_gpio;
+     struct rfkill_rk_gpio *reset = &rfkill->pdata->reset_gpio;
+#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335) || defined(CONFIG_AP6212) || defined(CONFIG_AP6354) || defined(CONFIG_AP6356)
     struct rfkill_rk_gpio* rts = &rfkill->pdata->rts_gpio;
     struct pinctrl *pinctrl = rfkill->pdata->pinctrl;
 #endif
@@ -287,60 +294,52 @@ static int rfkill_rk_set_power(void *data, bool blocked)
         LOG("%s: cannot get wifi power state!\n", __func__);
         return -1;
     }
-
-	if (false == blocked) { 
+	
+    if (false == blocked) {
         if (1 == vref_ctrl_enable && 0 == power)
             rockchip_wifi_ref_voltage(1);
-
-        rfkill_rk_sleep_bt(BT_WAKEUP); // ensure bt is wakeup
-
-        if (&rfkill->pdata->bt_power_remain == false && gpio_is_valid(poweron->io))
-        {
+		
+        rfkill_rk_sleep_bt(BT_WAKEUP); // ensure bt is wakeup 
+			
+        if (gpio_is_valid(poweron->io)) { 
             gpio_direction_output(poweron->io, !poweron->enable);
             msleep(20);
             gpio_direction_output(poweron->io, poweron->enable);
             msleep(20);
         }
-		if (gpio_is_valid(reset->io))
-        {
-			gpio_direction_output(reset->io, !reset->enable);
+        if (gpio_is_valid(reset->io)) {
+            gpio_direction_output(reset->io, !reset->enable);
             msleep(20);
-			gpio_direction_output(reset->io, reset->enable);
+            gpio_direction_output(reset->io, reset->enable);
         }
-#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335)
-        if (pinctrl != NULL && gpio_is_valid(rts->io))
-        {
+#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335) || defined(CONFIG_AP6212) || defined(CONFIG_AP6354) || defined(CONFIG_AP6356)
+        if (pinctrl != NULL && gpio_is_valid(rts->io)) { 
             pinctrl_select_state(pinctrl, rts->gpio_state);
-            LOG("ENABLE UART_RTS\n");
             gpio_direction_output(rts->io, rts->enable);
             msleep(100);
-            LOG("DISABLE UART_RTS\n");
             gpio_direction_output(rts->io, !rts->enable);
             pinctrl_select_state(pinctrl, rts->default_state);
         }
 #endif
         bt_power_state = 1;
-    	LOG("bt turn on power\n");
-	} else {
-            if (&rfkill->pdata->bt_power_remain == false && gpio_is_valid(poweron->io))
-            {      
-                gpio_direction_output(poweron->io, !poweron->enable);
-                msleep(20);
-            }
-
-            bt_power_state = 0;
-    		LOG("bt shut off power\n");
-		if (gpio_is_valid(reset->io))
-        {      
-			gpio_direction_output(reset->io, !reset->enable);/* bt reset active*/
+        LOG("bt turn on power\n");
+    } else {
+        if (gpio_is_valid(poweron->io)) {
+            gpio_direction_output(poweron->io, !poweron->enable);
+            msleep(20);
+        }
+        bt_power_state = 0;
+        LOG("bt shut off power\n");
+        if (gpio_is_valid(reset->io)) {      
+            gpio_direction_output(reset->io, !reset->enable);/* bt reset active*/
             msleep(20);
         }
 
         if (1 == vref_ctrl_enable && 0 == power)
             rockchip_wifi_ref_voltage(0);
-	}
-
-	return 0;
+		
+    }
+    return 0;
 }
 
 static int rfkill_rk_pm_prepare(struct device *dev)
@@ -580,8 +579,10 @@ static int rfkill_rk_probe(struct platform_device *pdev)
     pdata->type = RFKILL_TYPE_BLUETOOTH;
 
 	rfkill = devm_kzalloc(&pdev->dev, sizeof(*rfkill), GFP_KERNEL);
-	if (!rfkill)
+	if (!rfkill) {
+        kfree(pdata);
 		return -ENOMEM;
+    }
 
 	rfkill->pdata = pdata;
     rfkill->pdev = pdev;
@@ -670,6 +671,7 @@ static int rfkill_rk_probe(struct platform_device *pdev)
 fail_rfkill:
 	rfkill_destroy(rfkill->rfkill_dev);
 fail_alloc:
+    g_rfkill = NULL;
 
 	remove_proc_entry("btwrite", sleep_dir);
 	remove_proc_entry("lpm", sleep_dir);
@@ -713,6 +715,7 @@ static int rfkill_rk_remove(struct platform_device *pdev)
     if (gpio_is_valid(rfkill->pdata->poweron_gpio.io))
         gpio_free(rfkill->pdata->poweron_gpio.io);
 
+    kfree(rfkill);
     g_rfkill = NULL;
 
 	return 0;

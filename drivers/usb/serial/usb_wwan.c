@@ -491,6 +491,13 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial_port *port,
 	usb_fill_bulk_urb(urb, serial->dev,
 			  usb_sndbulkpipe(serial->dev, endpoint) | dir,
 			  buf, len, callback, ctx);
+    if (dir == USB_DIR_OUT) {
+        struct usb_device_descriptor *desc = &serial->dev->descriptor;
+        if ((desc->idVendor == 0x05C6 || desc->idVendor == 0x2c7c)
+            && ( desc->idProduct == 0x9003 || desc->idProduct == 0x0125 )) {
+                urb->transfer_flags |= URB_ZERO_PACKET;
+            }
+    }
 
 	return urb;
 }

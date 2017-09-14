@@ -18,7 +18,7 @@
 static int camio_version = KERNEL_VERSION(0,1,9); 
 module_param(camio_version, int, S_IRUGO);
 
-static int camera_debug = 0; 
+static int camera_debug = 1; 
 module_param(camera_debug, int, S_IRUGO|S_IWUSR);    
 
 #undef  CAMMODULE_NAME
@@ -297,21 +297,22 @@ static int	rk_dts_sensor_probe(struct platform_device *pdev)
 		}
 		
 		if (of_property_read_u32(cp, "rockchip,powerdown_pmu_voltage", &(new_camera->powerdown_pmu_voltage))) {
-			dprintk("%s:Get %s rockchip,resolution failed!\n",__func__, cp->name);				
+			dprintk("%s:Get %s rockchip,powerdown_pmu_voltage failed!\n",__func__, cp->name);				
 		}
 		if (of_property_read_u32(cp, "rockchip,power_pmu_voltage1", &(new_camera->power_pmu_voltage1))) {
-			dprintk("%s:Get %s rockchip,resolution failed!\n",__func__, cp->name);				
+			dprintk("%s:Get %s rockchip,power_pmu_voltage1 failed!\n",__func__, cp->name);				
 		}
 		if (of_property_read_u32(cp, "rockchip,power_pmu_voltage2", &(new_camera->power_pmu_voltage2))) {
-			dprintk("%s:Get %s rockchip,resolution failed!\n",__func__, cp->name);				
+			dprintk("%s:Get %s rockchip,power_pmu_voltage2 failed!\n",__func__, cp->name);				
 		}
-			debug_printk( "******************* /n power = %x\n", power);
-			debug_printk( "******************* /n powerdown = %x\n", powerdown);
-			debug_printk( "******************* /n i2c_add = %x\n", new_camera->dev.i2c_cam_info.addr << 1);
-			debug_printk( "******************* /n i2c_chl = %d\n", new_camera->dev.desc_info.host_desc.i2c_adapter_id);
-			debug_printk( "******************* /n init_name = %s\n", new_camera->dev.device_info.dev.init_name);
-			debug_printk( "******************* /n dev_name = %s\n", new_camera->dev_name);
-			debug_printk( "******************* /n module_name = %s\n", new_camera->dev.desc_info.host_desc.module_name);
+			printk( "******************* /n power = %x\n", power);
+			printk( "******************* /n reset = %x\n", reset);
+			printk( "******************* /n powerdown = %x\n", powerdown);
+			printk( "******************* /n i2c_add = %x\n", new_camera->dev.i2c_cam_info.addr << 1);
+			printk( "******************* /n i2c_chl = %d\n", new_camera->dev.desc_info.host_desc.i2c_adapter_id);
+			printk( "******************* /n init_name = %s\n", new_camera->dev.device_info.dev.init_name);
+			printk( "******************* /n dev_name = %s\n", new_camera->dev_name);
+			printk( "******************* /n module_name = %s\n", new_camera->dev.desc_info.host_desc.module_name);
 	};
 	new_camera_list->next_camera = NULL;
 	return 0;
@@ -408,7 +409,7 @@ static int sensor_power_default_cb (struct rk29camera_gpio_res *res, int on)
 	const char *camera_power_pmu_name1 = dev->power_pmu_name1;
     const char *camera_power_pmu_name2 = dev->power_pmu_name2;;
 	
-	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
+	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
 
 	if(camera_power_pmu_name1 != NULL)	{
 		ldo_28 = regulator_get(NULL, camera_power_pmu_name1);	// vcc28_cif
@@ -462,6 +463,7 @@ static int sensor_power_default_cb (struct rk29camera_gpio_res *res, int on)
 		ret = RK29_CAM_EIO_INVALID;
     } 
 
+printk("%s,ret:%d\n",__func__,ret);
     return ret;
 }
 
@@ -507,7 +509,7 @@ static int sensor_powerdown_default_cb (struct rk29camera_gpio_res *res, int on)
 	int powerdown_pmu_voltage = dev->powerdown_pmu_voltage;
 	const char *powerdown_pmu_name = dev->powerdown_pmu_name;
 
-	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
+	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
 
 	if(powerdown_pmu_name != NULL)	{		
 		powerdown_pmu = regulator_get(NULL, powerdown_pmu_name);
@@ -537,6 +539,7 @@ static int sensor_powerdown_default_cb (struct rk29camera_gpio_res *res, int on)
 		}
     }else {
 		ret = RK29_CAM_EIO_INVALID;
+		dprintk("%s PowerDownPin INVALID_GPIO",res->dev_name);
     }
     return ret;
 }
@@ -630,12 +633,12 @@ static int _rk_sensor_io_init_(struct rk29camera_gpio_res *gpio_res,struct devic
 	gpio_res->gpio_init = 0;
 
     if (camera_power != INVALID_GPIO) {
-		debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$/ camera_power  = %x\n", camera_power );
+		printk( "/$$$$$$$$$$$$$$$$$$$$$$/ camera_power  = %x\n", camera_power );
 
 		camera_power = of_get_named_gpio_flags(of_node,"rockchip,power",0,&flags);
 		gpio_res->gpio_power = camera_power;/* information back to the IO*/
 
-		debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$/ camera_power  = %x\n", camera_power );  
+		printk( "/$$$$$$$$$$$$$$$$$$$$$$/ camera_power  = %x\n", camera_power );  
 
 		ret = gpio_request(camera_power, "camera power"); 
         if (ret) {
@@ -674,7 +677,7 @@ static int _rk_sensor_io_init_(struct rk29camera_gpio_res *gpio_res,struct devic
 
     if (camera_reset != INVALID_GPIO) {
 		
-		camera_power = of_get_named_gpio_flags(of_node,"rockchip,reset",0,&flags);
+		camera_reset = of_get_named_gpio_flags(of_node,"rockchip,reset",0,&flags);
 		gpio_res->gpio_reset = camera_reset;/* information back to the IO*/
         ret = gpio_request(camera_reset, "camera reset");
         if (ret) {
@@ -939,8 +942,9 @@ static int rk_sensor_ioctrl(struct device *dev,enum rk29camera_ioctrl_cmd cmd, i
     int ret = RK29_CAM_IO_SUCCESS,i = 0;
 	struct soc_camera_desc *dev_icl = NULL;
 	struct rkcamera_platform_data *new_camera;
-	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()/n", __FILE__, __LINE__,__FUNCTION__);
+	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()/n", __FILE__, __LINE__,__FUNCTION__);
 
+printk("%s:%i,%s,cmd:%d,on:%d\n",__FILE__, __LINE__,__func__,cmd,on);
     if (res == NULL) {
 		new_camera = new_camera_head;
 		while(new_camera != NULL)
@@ -973,7 +977,7 @@ static int rk_sensor_ioctrl(struct device *dev,enum rk29camera_ioctrl_cmd cmd, i
                 WARN_ON(1);
 			}
 
-			printk("ret: %d\n",ret);
+			printk("Cam_Power ret: %d\n",ret);
 			break;
 		}
 		case Cam_Reset:
@@ -1048,7 +1052,7 @@ static int rk_sensor_pwrseq(struct device *dev,int powerup_sequence, int on, int
     int ret =0;
     int i,powerup_type;
 
-	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
+	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
 
     
     for (i=0; i<8; i++) {
@@ -1133,7 +1137,7 @@ static int rk_sensor_power(struct device *dev, int on)
     bool real_pwroff = true;
     int ret = 0;
 
-	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
+	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
 
     new_camera = plat_data->register_dev_new;
     
@@ -1178,7 +1182,7 @@ static int rk_sensor_power(struct device *dev, int on)
     }
         
     if (on) {
-		debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i\n", __FILE__, __LINE__);
+		printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i\n", __FILE__, __LINE__);
         rk_sensor_pwrseq(dev, powerup_sequence, on,mclk_rate);  
     } else {
         if (real_pwroff) {

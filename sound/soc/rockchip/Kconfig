@@ -187,6 +187,14 @@ config SND_RK_SOC_RT5640
 	help
 	   RT5640 is pin to pin as RT5642, but not have dsp function.
 
+config SND_RK_SOC_RT5660
+	tristate "SoC I2S Audio support for rockchip - RT5660(RT5660)"
+	depends on SND_RK_SOC
+	select SND_RK_SOC_I2S
+	select SND_SOC_RT5660
+	help
+	   RT5660 is pin to pin as RT5660, but not have dsp function.
+
 config SND_RK_SOC_RT3224
 	tristate "SoC I2S Audio support for rockchip - RT3224"
 	depends on SND_RK_SOC

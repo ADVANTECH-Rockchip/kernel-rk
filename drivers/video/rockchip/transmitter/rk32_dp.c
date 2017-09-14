@@ -1712,6 +1712,7 @@ static int rk32_edp_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct device_node *np = pdev->dev.of_node;
 	int ret;
+	int lane;
 
 	if (!np) {
 		dev_err(&pdev->dev, "Missing device tree node.\n");
@@ -1734,6 +1735,10 @@ static int rk32_edp_probe(struct platform_device *pdev)
 
 	edp->video_info.link_rate	= LINK_RATE_1_62GBPS;
 	edp->video_info.lane_count	= LANE_CNT4;
+	of_property_read_u32(np, "lane_count", &lane);
+	if ((lane == LANE_CNT1) || (lane == LANE_CNT2) || (lane == LANE_CNT4)){
+		edp->video_info.lane_count	= lane;
+	}
 	rk_fb_get_prmry_screen(&edp->screen);
 	if (edp->screen.type != SCREEN_EDP) {
 		dev_err(&pdev->dev, "screen is not edp!\n");

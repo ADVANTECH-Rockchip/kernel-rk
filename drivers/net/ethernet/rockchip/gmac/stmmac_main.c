@@ -48,6 +48,10 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #endif /* CONFIG_GMAC_DEBUG_FS */
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/proc_fs.h>
+struct platform_device *gdev= NULL;
+#endif
 #include <linux/net_tstamp.h>
 #include "stmmac_ptp.h"
 #include "stmmac.h"
@@ -683,6 +687,44 @@ static void stmmac_release_ptp(struct stmmac_priv *priv)
 	stmmac_ptp_unregister(priv);
 }
 
+#if 0
+static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,int devad)
+{
+	int value = -1;
+
+	/* Write the desired MMD Devad */
+	phy_write(phydev,  0x0d, devad);
+
+	/* Write the desired MMD register address */
+	phy_write(phydev,  0x0e, prtad);
+
+	/* Select the Function : DATA with no post increment */
+	phy_write(phydev,  0x0d, (devad | 0x4000));
+
+	/* Read the content of the MMD's selected register */
+	value = phy_read(phydev,  0x0e);
+	return value;
+}
+#endif
+
+#ifdef CONFIG_ARCH_ADVANTECH
+static void phy_write_mmd_indirect(struct phy_device *phydev, int prtad,
+			    int devad, int addr, u32 data)
+{
+	/* Write the desired MMD Devad */
+	phy_write(phydev,  0x0d, devad);
+
+	/* Write the desired MMD register address */
+	phy_write(phydev,  0x0e, prtad);
+
+	/* Select the Function : DATA with no post increment */
+	phy_write(phydev,  0x0d, (devad | 0x4000));
+
+	/* Write the data into MMD's selected register */
+	phy_write(phydev,  0x0e, data);
+}
+#endif
+
 static int g_bmcr = 0;
 
 /**
@@ -702,8 +744,20 @@ static void stmmac_adjust_link(struct net_device *dev)
 	if (phydev == NULL)
 		return;
 
-	DBG(probe, DEBUG, "stmmac_adjust_link: called.  address %d link %d\n",
-	    phydev->addr, phydev->link);
+#if 0
+	printk("stmmac_adjust_link: called.  address %d link %d oldlink %d\n",
+	    phydev->addr, phydev->link, priv->oldlink);
+	printk("MII reg:\n");
+	printk("0x00:%x\n",phy_read(phydev,0x0));
+	printk("0x01:%x\n",phy_read(phydev,0x1));
+	printk("0x01:%x\n",phy_read(phydev,0x1));
+	printk("0x04:%x\n",phy_read(phydev,0x04));
+	printk("0x09:%x\n",phy_read(phydev,0x09));
+	printk("0x10:%x\n",phy_read(phydev,0x10));
+	printk("0x11:%x\n",phy_read(phydev,0x11));
+	printk("0x6e:%x\n",phy_read_mmd_indirect(phydev,0x6e,0x1f));
+	printk("0x6f:%x\n",phy_read_mmd_indirect(phydev,0x6f,0x1f));
+#endif
 
 	spin_lock_irqsave(&priv->lock, flags);
 
@@ -1029,7 +1083,7 @@ static int stmmac_init_phy(struct net_device *dev)
 
 	snprintf(phy_id_fmt, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
 		 priv->plat->phy_addr);
-	pr_debug("stmmac_init_phy:  trying to attach to %s\n", phy_id_fmt);
+	pr_info("stmmac_init_phy:  trying to attach to %s,phy_addr:%d\n", phy_id_fmt,priv->plat->phy_addr);
 
 	phydev = phy_connect(dev, phy_id_fmt, &stmmac_adjust_link, interface);
 
@@ -1055,7 +1109,7 @@ static int stmmac_init_phy(struct net_device *dev)
 		phy_disconnect(phydev);
 		return -ENODEV;
 	}
-	pr_debug("stmmac_init_phy:  %s: attached to PHY (UID 0x%x)"
+	pr_info("stmmac_init_phy:  %s: attached to PHY (UID 0x%x)"
 		 " Link = %d\n", dev->name, phydev->phy_id, phydev->link);
 
 	priv->phydev = phydev;
@@ -1805,6 +1859,7 @@ static int stmmac_open(struct net_device *dev)
 
 	stmmac_check_ether_addr(priv);
 
+printk("%s,phy_addr:%d\n",__func__,priv->plat->phy_addr);
 
 	if (priv->pcs != STMMAC_PCS_SGMII && priv->pcs != STMMAC_PCS_TBI &&
 	    priv->pcs != STMMAC_PCS_RTBI) {
@@ -2918,6 +2973,104 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+static int
+stmmac_proc_write(struct file *file, const char __user * buffer,
+               size_t count, loff_t *offset)
+{
+	int i,addr;
+	char line[8];
+	int ret;
+	struct platform_device *pdev = (struct platform_device *)gdev;
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *stmmac = netdev_priv(ndev);
+	struct phy_device *phydev;
+
+	ret = copy_from_user(line, buffer, count);
+	if (ret)
+		return -EFAULT;
+
+	for (i = 0 ; i < PHY_MAX_ADDR; i++)
+	{
+		if (stmmac->mii->phy_map[i] && stmmac->mii->phy_map[i]->phy_id)
+			break;
+	}
+	if(i >= PHY_MAX_ADDR)
+		return -ENODEV;
+
+printk("%s,id:%x,addr:%d,i:%d\n",__func__,stmmac->mii->phy_map[i]->phy_id,
+	stmmac->mii->phy_map[i]->addr,i);
+	return count;
+	phydev = stmmac->mii->phy_map[i];
+	addr = phydev->addr;
+	if(0x2000a231 == phydev->phy_id)
+	{
+		/* Access TI DP83867 internal register to measure IEEE waveform */
+		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x8000);
+		stmmac->mii->write(stmmac->mii, addr, 0x00, 0x0140);
+		stmmac->mii->write(stmmac->mii, addr, 0x10, 0x5008);
+	}
+	else
+		return -ENODEV;
+
+	
+	if (strstr(line, "1"))
+	{
+		if(0x2000a231 == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x3B00);
+			phy_write_mmd_indirect(phydev, 0x25, 0x1f, addr, 0x0480);
+			phy_write_mmd_indirect(phydev, 0x01D5, 0x1f, addr, 0xF508);
+		}
+	}
+	else if (strstr(line, "2"))
+	{
+		if(0x2000a231 == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x5B00);
+			phy_write_mmd_indirect(phydev, 0x25, 0x1f, addr, 0x0480);
+		}
+	}
+	else if (strstr(line, "3"))
+	{
+		if(0x2000a231 == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x7B00);
+			phy_write_mmd_indirect(phydev, 0x25, 0x1f, addr, 0x0480);
+		}
+	}
+	else if (strstr(line, "4"))
+	{
+		if(0x2000a231 == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x9B00);
+			phy_write_mmd_indirect(phydev, 0x25, 0x1f, addr, 0x0480);
+		}
+	}
+	else if (strstr(line, "5"))
+	{
+		if(0x2000a231 == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x00, 0x2100);
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0xBB00);
+			phy_write_mmd_indirect(phydev, 0x25, 0x1f, addr, 0x0480);
+		}
+	}
+	else
+		goto out; /* Disable test mode */
+
+	//value = stmmac->mii->read(stmmac->mii, i, 0x09);
+	//printk("mii reg: 0x%x\n", value);
+out:
+	return count;
+}
+
+static const struct file_operations net_testmode_fops = {
+	.owner = THIS_MODULE,
+	.write = stmmac_proc_write,
+};
+#endif
+
 /**
  * stmmac_dvr_probe
  * @device: device pointer
@@ -2933,6 +3086,9 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	int ret = 0;
 	struct net_device *ndev = NULL;
 	struct stmmac_priv *priv;
+#ifdef CONFIG_ARCH_ADVANTECH
+	struct proc_dir_entry *proc_entry = NULL;
+#endif
 
 	ndev = alloc_etherdev(sizeof(struct stmmac_priv));
 	if (!ndev)
@@ -3036,6 +3192,17 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		}
 	}
 #endif
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	gdev = to_platform_device(device);
+	proc_entry = proc_create("net_testmode", 0777, NULL, &net_testmode_fops);
+	/*
+	if (proc_entry) {
+		proc_entry->data = gdev;
+	}
+	*/
+#endif
+
 	return priv;
 #if 0
 error_mdio_register:

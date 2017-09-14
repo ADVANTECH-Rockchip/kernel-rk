@@ -391,6 +391,12 @@ config RETU_WATCHDOG
 	  To compile this driver as a module, choose M here: the
 	  module will be called retu_wdt.
 
+config C8051_WDT
+	tristate "Advantech C8051 System level Watchdog"
+	help
+	 System level Watchdog driver for the built-in hardware in Advantech ARM platform.
+	 Say 'Y or 'M' here to enable the driver.
+
 # AVR32 Architecture
 
 config AT32AP700X_WDT

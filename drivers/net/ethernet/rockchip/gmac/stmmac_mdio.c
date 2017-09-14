@@ -209,7 +209,7 @@ int stmmac_mdio_register(struct net_device *ndev)
 			 * and no PHY number was provided to the MAC,
 			 * use the one probed here.
 			 */
-			if (priv->plat->phy_addr == -1)
+			if ((priv->plat->phy_addr == -1) && (phydev->phy_id))
 				priv->plat->phy_addr = addr;
 			else if (priv->plat->phy_addr == 0)
 				priv->plat->phy_addr = addr;

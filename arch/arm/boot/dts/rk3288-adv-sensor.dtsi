@@ -1,0 +1,35 @@
+#include "rk3288.dtsi" 
+#include "rk3288-pinctrl.dtsi"
+#include "../../mach-rockchip/rk_camera_sensor_info.h"
+/{
+	rk3288_cif_sensor: rk3288_cif_sensor{
+			compatible = "rockchip,sensor";
+			status = "disabled";
+
+	 ov5640{
+		is_front = <1>;
+		//rockchip,power_pmu_name1 = "rk818_ldo4";
+		//rockchip,power_pmu_voltage1 = <2800000>;
+		//rockchip,powerdown = <&gpio2 GPIO_B4 GPIO_ACTIVE_HIGH>;
+		//rockchip,powerdown_pmu = "";
+		//rockchip,powerdown_pmu_voltage = <3000000>;
+		//pwdn_active = <ov5640_PWRDN_ACTIVE>;
+		rockchip,power = <&gpio2 GPIO_B7 GPIO_ACTIVE_HIGH>;
+		pwr_active = <PWR_ACTIVE_HIGH>;
+		mir = <0>;
+		flash_attach = <1>;
+		//rockchip,flash = <>;
+		rockchip,reset = <&gpio2 GPIO_B6 GPIO_ACTIVE_HIGH>;
+		flash_active = <1>;
+		resolution = <ov5640_FULL_RESOLUTION>;
+		powerup_sequence = <ov5640_PWRSEQ>;
+		orientation = <0>;		
+		i2c_add = <ov5640_I2C_ADDR>;
+		i2c_rata = <100000>;
+		i2c_chl = <1>;
+		cif_chl = <0>;
+		mclk_rate = <24>;
+		};
+	};
+};
+

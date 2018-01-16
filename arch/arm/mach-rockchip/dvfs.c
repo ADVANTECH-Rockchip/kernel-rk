@@ -42,11 +42,17 @@ static int pd_gpu_off, early_suspend;
 static DEFINE_MUTEX(switch_vdd_gpu_mutex);
 struct regulator *vdd_gpu_regulator;
 static DEFINE_MUTEX(temp_limit_mutex);
-static u32 cpu_target_temp;
+static int cpu_target_temp;
 static bool temp_limit_4k;
+static int lkg_adjust_temp;
 
 static int dvfs_get_rate_range(struct dvfs_node *clk_dvfs_node);
 static void dvfs_temp_unlimit_4k(void);
+
+static int virt_temp_for_tempctrl(int temp)
+{
+	return temp + lkg_adjust_temp;
+}
 
 static int dvfs_get_temp(int chn)
 {
@@ -67,6 +73,8 @@ static int dvfs_get_temp(int chn)
 #else
 	temp = rockchip_tsadc_get_temp(chn, 0);
 #endif
+	if (ROCKCHIP_PM_POLICY_PERFORMANCE == rockchip_pm_get_policy())
+		temp = virt_temp_for_tempctrl(temp);
 
 	return temp;
 }
@@ -2333,6 +2341,10 @@ static int dvfs_node_parse_dt(struct device_node *np,
 	int i = 0;
 	int ret;
 
+
+	if (soc_is_rk3288w())
+		process_version = RK3288_PROCESS_V2;
+
 	of_property_read_u32_index(np, "channel", 0, &dvfs_node->channel);
 
 	dvfs_node->vd->leakage = rockchip_get_leakage(dvfs_node->channel);
@@ -2350,11 +2362,20 @@ static int dvfs_node_parse_dt(struct device_node *np,
 	of_property_read_u32_index(np, "temp-limit-enable", 0,
 				   &dvfs_node->temp_limit_enable);
 	if (dvfs_node->temp_limit_enable) {
+		int tmp[2];
+		int leakage = rockchip_get_leakage(dvfs_node->channel);
+
 		of_property_read_u32_index(np, "min_temp_limit",
 					   0, &dvfs_node->min_temp_limit);
 		dvfs_node->min_temp_limit *= 1000;
 		of_property_read_u32_index(np, "target-temp",
 					   0, &dvfs_node->target_temp);
+		ret = of_property_read_u32_array(np, "lkg-adjust-temp",
+					   tmp, ARRAY_SIZE(tmp));
+		if (!ret)
+			if (leakage >= tmp[0])
+				lkg_adjust_temp = tmp[1];
+
 		pr_info("target-temp:%d\n", dvfs_node->target_temp);
 		dvfs_node->nor_temp_limit_table =
 			of_get_temp_limit_table(np,

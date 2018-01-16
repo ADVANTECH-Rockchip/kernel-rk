@@ -1011,6 +1011,10 @@
 						/* temp freq */
 						100     816000
 						>;
+					lkg-adjust-temp = <
+						/*lkg   delta-temp*/
+						40      20
+						>;
 
 					regu-mode-table = <
 						/* freq mode */

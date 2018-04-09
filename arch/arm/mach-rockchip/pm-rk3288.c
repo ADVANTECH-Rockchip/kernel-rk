@@ -926,6 +926,7 @@ enum rk3288_pwr_mode_con {
 static void ddr_pin_set_fun(u8 port,u8 bank,u8 b_gpio,u8 fun);
 
 static u32 sgrf_soc_con0,pmu_wakeup_cfg0,pmu_wakeup_cfg1,pmu_pwr_mode_con0,pmu_pwr_mode_con1;
+static u32 rk3288_sgrf_cpu_con0 = 0;
 
 static u32  rkpm_slp_mode_set(u32 ctrbits)
 {
@@ -933,6 +934,18 @@ static u32  rkpm_slp_mode_set(u32 ctrbits)
     // setting gpio0_a0 arm off pin
 
     sgrf_soc_con0=reg_readl(RK_SGRF_VIRT+RK3288_SGRF_SOC_CON0);
+
+	rk3288_sgrf_cpu_con0 = reg_readl(RK_SGRF_VIRT + 0x040);
+
+    rkpm_ddr_printch('\n');
+    rkpm_ddr_printascii("grf_con = ");
+    rkpm_ddr_printhex(reg_readl(RK_SGRF_VIRT + 0x040));
+    rkpm_ddr_printch('\n');
+    reg_writel(0x00010000,RK_SGRF_VIRT+0x040);
+    rkpm_ddr_printch('\n');
+    rkpm_ddr_printascii("grf_con = ");
+    rkpm_ddr_printhex(reg_readl(RK_SGRF_VIRT + 0x040));
+    rkpm_ddr_printch('\n');
     
     pmu_wakeup_cfg0=pmu_readl(RK3288_PMU_WAKEUP_CFG0);  
     pmu_wakeup_cfg1=pmu_readl(RK3288_PMU_WAKEUP_CFG1);
@@ -953,7 +966,8 @@ static u32  rkpm_slp_mode_set(u32 ctrbits)
     // enable boot ram    
     reg_writel((0x1<<8)|(0x1<<(8+16)),RK_SGRF_VIRT+RK3288_SGRF_SOC_CON0);
     dsb();
-    
+   
+    reg_writel(BIT(16), RK_SGRF_VIRT+RK3288_SGRF_CPU_CON0); 
     reg_writel(RKPM_BOOTRAM_PHYS,RK_SGRF_VIRT+RK3288_SGRF_FAST_BOOT_ADDR);
     dsb();
 
@@ -1053,6 +1067,15 @@ static u32  rkpm_slp_mode_set(u32 ctrbits)
 
 static inline void  rkpm_slp_mode_set_resume(void)
 {
+
+    reg_writel(0x00010000, RK_SGRF_VIRT+0x040);
+    rkpm_ddr_printch('\n');
+
+    rkpm_ddr_printascii("0903resume grf_con = ");
+    rkpm_ddr_printhex(reg_readl(RK_SGRF_VIRT + 0x040));
+    rkpm_ddr_printch('\n');
+
+
 
     pmu_writel(pmu_wakeup_cfg0,RK3288_PMU_WAKEUP_CFG0);  
     pmu_writel(pmu_wakeup_cfg1,RK3288_PMU_WAKEUP_CFG1);  
@@ -2247,6 +2270,17 @@ static void pm_plls_suspend(void)
 
     
     plls_suspend(APLL_ID);
+
+
+	rkpm_ddr_printch('\n');
+	rkpm_ddr_printascii("zzzz = ");
+	rkpm_ddr_printhex(reg_readl(RK_CRU_VIRT + 0x190));
+	rkpm_ddr_printch('\n');
+	rkpm_ddr_printch('\n');
+	rkpm_ddr_printascii("gat12 = ");
+	reg_writel(0xf000000,RK_CRU_VIRT + 0x190);
+	rkpm_ddr_printhex(reg_readl(RK_CRU_VIRT + 0x190));
+	rkpm_ddr_printch('\n');
 
 }
 

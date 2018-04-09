@@ -139,11 +139,26 @@ static u64 gmac_dmamask = DMA_BIT_MASK(32);
 #define RK1108_GMAC_RMII_CLK_25M	GRF_BIT(7)
 #define RK1108_GMAC_RMII_CLK_2_5M	GRF_CLR_BIT(7)
 
-static void SET_RGMII(struct bsp_priv *bsp_priv, int type,
+#ifdef CONFIG_ARCH_ADVANTECH
+void SET_RGMII_VOL(int type,int gmac_v18sel)
+{
+	int val;
+
+	if (type == RK3288_GMAC) {
+		val = grf_readl(RK3288_GRF_IO_VSEL);
+		if(gmac_v18sel)
+			val |= 0x80008;
+		else
+			val = (val & ~0x0008) | 0x80000;
+		grf_writel(val, RK3288_GRF_IO_VSEL);
+	}
+}
+#endif
+
+void SET_RGMII(struct bsp_priv *bsp_priv, int type,
 		      int tx_delay, int rx_delay)
 {
-printk("++++++%s+++++++\n",__func__);
-	pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
+	//pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_PHY_INTF_SEL_RGMII, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_RMII_MODE_CLR, RK3288_GRF_SOC_CON1);
@@ -151,7 +166,7 @@ printk("++++++%s+++++++\n",__func__);
 		grf_writel(GMAC_TXCLK_DLY_ENABLE, RK3288_GRF_SOC_CON3);
 		grf_writel(GMAC_CLK_RX_DL_CFG(rx_delay), RK3288_GRF_SOC_CON3);
 		grf_writel(GMAC_CLK_TX_DL_CFG(tx_delay), RK3288_GRF_SOC_CON3);
-		pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
+		//pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
 	} else if (type == RK312X_GMAC) {
 		grf_writel(GMAC_PHY_INTF_SEL_RGMII, RK312X_GRF_MAC_CON1);
 		grf_writel(GMAC_RMII_MODE_CLR, RK312X_GRF_MAC_CON1);
@@ -159,7 +174,7 @@ printk("++++++%s+++++++\n",__func__);
 		grf_writel(GMAC_TXCLK_DLY_ENABLE, RK312X_GRF_MAC_CON0);
 		grf_writel(GMAC_CLK_RX_DL_CFG(rx_delay), RK312X_GRF_MAC_CON0);
 		grf_writel(GMAC_CLK_TX_DL_CFG(tx_delay), RK312X_GRF_MAC_CON0);
-		pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
+		//pr_info("tx delay=0x%x\nrx delay=0x%x\n", tx_delay, rx_delay);
 	} else if (type == RK3368_GMAC) {
 		struct device *dev = &bsp_priv->pdev->dev;
 
@@ -200,7 +215,6 @@ printk("++++++%s+++++++\n",__func__);
 
 static void SET_RMII(struct bsp_priv *bsp_priv, int type)
 {
-printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_PHY_INTF_SEL_RMII, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_RMII_MODE, RK3288_GRF_SOC_CON1);
@@ -250,7 +264,6 @@ printk("++++++%s+++++++\n",__func__);
 
 static void SET_RGMII_10M(struct bsp_priv *bsp_priv, int type)
 {
-	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_2_5M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -282,7 +295,6 @@ static void SET_RGMII_10M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RGMII_100M(struct bsp_priv *bsp_priv, int type)
 {
-	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_25M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -314,7 +326,6 @@ static void SET_RGMII_100M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RGMII_1000M(struct bsp_priv *bsp_priv, int type)
 {
-	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_CLK_125M, RK3288_GRF_SOC_CON1);
 	} else if (type == RK312X_GMAC) {
@@ -346,7 +357,6 @@ static void SET_RGMII_1000M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RMII_10M(struct bsp_priv *bsp_priv, int type)
 {
-	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_RMII_CLK_2_5M, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_SPEED_10M, RK3288_GRF_SOC_CON1);
@@ -400,7 +410,6 @@ static void SET_RMII_10M(struct bsp_priv *bsp_priv, int type)
 
 static void SET_RMII_100M(struct bsp_priv *bsp_priv, int type)
 {
-	printk("++++++%s+++++++\n",__func__);
 	if (type == RK3288_GMAC) {
 		grf_writel(GMAC_RMII_CLK_25M, RK3288_GRF_SOC_CON1);
 		grf_writel(GMAC_SPEED_100M, RK3288_GRF_SOC_CON1);
@@ -894,6 +903,10 @@ int stmmc_pltfr_init(struct platform_device *pdev) {
 		}
 	}
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	SET_RGMII_VOL(bsp_priv->chip,bsp_priv->gmac_v18sel);
+#endif
+
 /* rmii or rgmii */
 	if (phy_iface == PHY_INTERFACE_MODE_RGMII) {
 		pr_info("%s: init for RGMII\n", __func__);
@@ -1050,6 +1063,17 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 		else
 			g_bsp_priv.internal_phy = false;
 	}
+#ifdef CONFIG_ARCH_ADVANTECH
+	ret = of_property_read_u32(np, "gmac_v18sel", &value);
+	if (ret) {
+		g_bsp_priv.gmac_v18sel = 0;
+		pr_err("%s: Can not read property: gmac_v18sel.\n", __func__);
+		pr_err("set gmac voltage to 0x%x\n", g_bsp_priv.gmac_v18sel);
+	} else {
+		pr_info("%s: gmac voltage select(0x%x).\n", __func__, value);
+		g_bsp_priv.gmac_v18sel = value;
+	}
+#endif
 
 	g_bsp_priv.cru = syscon_regmap_lookup_by_phandle(np, "rockchip,cru");
 	g_bsp_priv.grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");

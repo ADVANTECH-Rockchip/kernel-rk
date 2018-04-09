@@ -139,6 +139,7 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 {
 	struct rk32_lvds *lvds;
 	struct resource *res;
+    int prop;
 	struct device_node *np = pdev->dev.of_node;
 
 	if (!np) {
@@ -152,7 +153,16 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 	lvds->dev = &pdev->dev;
-	rk_fb_get_prmry_screen(&lvds->screen);
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(rk_fb_is_dual_lcd_mode()){
+		of_property_read_u32(np, "prop", &prop);
+		pr_info("Use LVDS as %s screen\n", (prop == PRMRY) ? "prmry" : "extend");
+		rk_fb_get_screen(&lvds->screen, prop);
+		lvds->prop = prop;
+	} else
+#endif
+		rk_fb_get_prmry_screen(&lvds->screen);
+
 	if ((lvds->screen.type != SCREEN_RGB) && 
 		(lvds->screen.type != SCREEN_LVDS) &&
 		(lvds->screen.type != SCREEN_DUAL_LVDS) &&
@@ -179,13 +189,19 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 	if (IS_ERR(lvds->pd)) {
 		dev_err(&pdev->dev, "get clk failed\n");
 		return PTR_ERR(lvds->pd);
-	}	
+	}
 	if (support_uboot_display()) {
 		rk32_lvds_clk_enable(lvds);
 	}
 
 	rk32_lvds = lvds;
-	rk_fb_trsm_ops_register(&trsm_lvds_ops,SCREEN_LVDS);
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(rk_fb_is_dual_lcd_mode()) {
+		rk32_lvds_clk_enable(lvds);
+		rk_fb_trsm_ops_register(&trsm_lvds_ops, prop);
+	} else
+#endif
+		rk_fb_trsm_ops_register(&trsm_lvds_ops,SCREEN_LVDS);
 	dev_info(&pdev->dev, "rk32 lvds driver probe success\n");
 
 	return 0;

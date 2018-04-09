@@ -34,6 +34,7 @@ struct rk32_lvds {
 	struct clk              *pd;
 	struct rk_screen	screen;
 	bool			clk_on;
+	int prop;
 };
 
 static int inline lvds_writel(struct rk32_lvds *lvds, u32 offset, u32 val)

@@ -11,7 +11,7 @@
 //#include "vtl_ts_sdk8846.dtsi"
 #include "rk3288-adv-sensor.dtsi"
 / {
-	model = "RSB-4680 a101-1";
+	model = "RSB-4680 a102-1";
 	aliases {
 		ethernet0 = &gmac;
 	};
@@ -70,7 +70,7 @@
 	};
 
 	gpio-ctrl-adv {
-	        compatible = "gpio-ctrl-adv";
+		compatible = "gpio-ctrl-adv";
 		minipcie-pwr-gpio = <&gpio7 GPIO_A6 GPIO_ACTIVE_HIGH>;
 		minipcie-reset-gpio = <&gpio2 GPIO_A7 GPIO_ACTIVE_HIGH>;
 		timing-interval = <10>;
@@ -79,13 +79,15 @@
 	backlight {
 		compatible = "pwm-backlight";
 		pwms = <&pwm1 0 25000>;
-                brightness-levels = <0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255>;
+		rockchip,pwm_id= <1>;
+		brightness-levels = <0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255>;
 		default-brightness-level = <200>;
 		enable-gpios = <&gpio1 GPIO_D3 GPIO_ACTIVE_HIGH>;
 	};
 
 	codec_hdmi_i2s: codec-hdmi-i2s {
 		compatible = "hdmi-i2s";
+		status = "disabled";
 	};
 
 	codec_hdmi_spdif: codec-hdmi-spdif {
@@ -100,6 +102,7 @@
 
 	rockchip-hdmi-i2s {
 		compatible = "rockchip-hdmi-i2s";
+		status = "disabled";
 		dais {
 			dai0 {
 				audio-codec = <&codec_hdmi_i2s>;
@@ -176,23 +179,24 @@
 		bootargs = "vmalloc=512M";
 	};
 	
-  regulators {
-   compatible = "simple-bus";
-   #address-cells = <1>;
-   #size-cells = <0>;
-   vdd_logic: regulator@14 {
-       compatible = "regulator-fixed";
-       regulator-name = "vdd_logic";
-       regulator-min-microvolt = <1150000>;
-       regulator-max-microvolt = <1150000>;
-       regulator-always-on;
-   };
-  };
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		vdd_logic: regulator@14 {
+			compatible = "regulator-fixed";
+			regulator-name = "vdd_logic";
+			regulator-min-microvolt = <1150000>;
+			regulator-max-microvolt = <1150000>;
+			regulator-always-on;
+		};
+	};
   
 	key {
 		compatible = "rockchip,key";
 		//pinctrl-names = "default";
 		//pinctrl-0 = <&sleep_btn &power_btn>;
+		reset-gpio = <&gpio0 GPIO_B2 GPIO_ACTIVE_LOW>;
 
 		sleep-key {
 			gpios = <&gpio2 GPIO_A2 GPIO_ACTIVE_HIGH>;
@@ -202,7 +206,7 @@
 		};
 
 		power-key {
-			gpios = <&gpio2 GPIO_A5 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio0 GPIO_A5 GPIO_ACTIVE_LOW>;
 			linux,code = <116>;
 			label = "power";
 			gpio-key,wakeup;
@@ -430,32 +434,32 @@
 
 &uart_bt {
     status = "okay";
-    dma-names = "!tx", "!rx";
+    dma-names = "tx", "rx";
     pinctrl-0 = <&uart0_xfer &uart0_cts>;
 };
 
 &uart_bb {
 	status = "okay";
-	dma-names = "!tx", "!rx";
+	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart1_xfer &uart1_rts_gpio>;
 };
 
 &uart_dbg {
 	status = "okay";
-	dma-names = "!tx", "!rx";
+	//dma-names = "tx", "rx";
 };
 
 &uart_gps {
 	status = "okay";
-	dma-names = "!tx", "!rx";
+	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart3_xfer &uart3_rts_gpio>;
 };
 
 &uart_exp {
 	status = "okay";
-	dma-names = "!tx", "!rx";
+	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart4_xfer &uart4_rts_gpio>;
 	uart-sel-gpio = <&gpio5 GPIO_C0 GPIO_ACTIVE_HIGH>;
@@ -503,16 +507,24 @@
 
 &i2c3 {
 	status = "okay";
+    touchscreen: tsc2007@4b {
+            compatible = "ti,tsc2007";
+            reg = <0x4b>;
+            interrupt-parent = <&gpio0>;
+            interrupts = <17 2>;                          
+            gpios = <&gpio0 GPIO_C1 GPIO_ACTIVE_LOW>;
+            ti,x-plate-ohms = <180>;
+            linux,wakeup;
+    };
+};
 
+&i2c4 {
+	status = "okay";
 	eeprom: eeprom@50 {
 		compatible = "atmel,24c32";
 		reg = <0x50>;
 		pagesize = <32>;
 	};
-};
-
-&i2c4 {
-	status = "okay";
 };
 
 &i2c5 {
@@ -530,6 +542,35 @@
 
 &rk_screen {
 	display-timings = <&disp_timings>;
+	screen0 {
+		display-timings = <&disp_timings>;
+		screen_prop = <EXTEND>;//PRMRY
+		/*native-mode = <DEFAULT_MODE>;*/
+		screen-type = <SCREEN_EDP>;
+		power_ctr {
+		};
+	};
+	screen1 {
+		display-timings = <&disp_timings>;
+		screen_prop = <PRMRY>;//EXTEND
+		/*native-mode = <DEFAULT_MODE>;*/
+		screen-type = <SCREEN_LVDS>;
+		power_ctr {
+		};
+	};
+};
+
+&edp {
+    status = "okay";
+    prop = <EXTEND>;
+    lane_count = <2>;
+    hotplg_gpio = <&gpio7 GPIO_B3 GPIO_ACTIVE_HIGH>;
+    rockchip,edp-audio-enable = <0>;
+};
+
+&lvds{
+    status = "okay";
+    prop = <PRMRY>;
 };
 
 /*lcdc0 as PRMRY(LCD),lcdc1 as EXTEND(HDMI)*/
@@ -539,6 +580,9 @@
 &lcdc0 {
 #endif
 	status = "okay";
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&lcdc0_gpio>;
+	pinctrl-1 = <&lcdc0_gpio>;
 	rockchip,mirror = <NO_MIRROR>;
 	rockchip,cabc_mode = <0>;
 	power_ctr: power_ctr {
@@ -561,19 +605,12 @@
 };
 
 &hdmi {
-	status = "okay";
+	status = "disabled";
 #if ENABLE_4K_DISPLAY
 	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC0>;
 #else
 	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC1>;
 #endif
-};
-
-&edp {
-	status = "okay";
-	lane_count = <2>;
-	hotplg_gpio = <&gpio7 GPIO_B3 GPIO_ACTIVE_HIGH>;
-	rockchip,edp-audio-enable = <0>;
 };
 
 &ps2c {
@@ -635,7 +672,7 @@
 
 	freq-table = <
 		/*status		freq(KHz)*/
-		SYS_STATUS_NORMAL	528000
+		SYS_STATUS_NORMAL	400000
 		SYS_STATUS_SUSPEND	 324000
 		/*SYS_STATUS_VIDEO_1080P  324000
 		SYS_STATUS_VIDEO_4K     528000
@@ -756,8 +793,8 @@
 
 		rk808_ldo3_reg: regulator@6 {
 			regulator-name= "rk_ldo3";
-			regulator-min-microvolt = <1000000>;
-			regulator-max-microvolt = <1000000>;
+			regulator-min-microvolt = <1100000>;
+			regulator-max-microvolt = <1100000>;
 			regulator-always-on;
 			regulator-boot-on;
 			regulator-initial-state = <3>;

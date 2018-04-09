@@ -63,6 +63,9 @@ struct rk_i2s_dev {
 	struct regmap *regmap;
 	bool tx_start;
 	bool rx_start;
+#ifdef CONFIG_ARCH_ADVANTECH
+	int pwr18;			/*if i2s use 1.8v power supply*/
+#endif
 	int xfer_mode; /* 0: i2s, 1: pcm */
 #ifdef CLK_SET_LATER
 	struct delayed_work clk_delayed_work;
@@ -414,6 +417,10 @@ static int rockchip_i2s_dai_probe(struct snd_soc_dai *dai)
 {
 	struct rk_i2s_dev *i2s = to_info(dai);
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	clk_prepare_enable(i2s->clk);
+	clk_prepare_enable(i2s->mclk);
+#endif
 	dai->capture_dma_data = &i2s->capture_dma_data;
 	dai->playback_dma_data = &i2s->playback_dma_data;
 
@@ -606,6 +613,11 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto err;
 	}
+	
+#ifdef CONFIG_ARCH_ADVANTECH
+	//disable i2s mclk & bclk
+	writel_relaxed(0x90009, RK_CRU_VIRT+RK3288_CRU_CLKGATES_CON(4));
+#endif
 
 	i2s->hclk = devm_clk_get(&pdev->dev, "i2s_hclk");
 	if (IS_ERR(i2s->hclk)) {
@@ -628,7 +640,9 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 #else
 	clk_set_rate(i2s->clk, I2S_DEFAULT_FREQ);
 #endif
+#ifndef CONFIG_ARCH_ADVANTECH
 	clk_prepare_enable(i2s->clk);
+#endif
 
 	i2s->mclk = devm_clk_get(&pdev->dev, "i2s_mclk");
 	if (IS_ERR(i2s->mclk)) {
@@ -637,7 +651,9 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	#ifndef CLK_SET_LATER
 		clk_set_rate(i2s->mclk, I2S_DEFAULT_FREQ);
 	#endif
+	#ifndef CONFIG_ARCH_ADVANTECH
 		clk_prepare_enable(i2s->mclk);
+	#endif
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -693,6 +709,15 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 			soc_dai->capture.channels_max = val;
 	}
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	if (of_property_read_u32(node, "rockchip,pwr18", &i2s->pwr18)) {
+		if(i2s->pwr18) {
+			val = 0x00400040;
+			writel_relaxed(val, RK_GRF_VIRT + RK3288_GRF_IO_VSEL);
+		}
+	}
+#endif
+
 	ret = snd_soc_register_component(&pdev->dev,
 					 &rockchip_i2s_component,
 					 soc_dai, 1);
@@ -721,9 +746,10 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 				   I2S_RXCR_TFS_MASK,
 				   I2S_RXCR_TFS_PCM);
 	}
-
+#ifndef CONFIG_ARCH_ADVANTECH
 	rockchip_snd_txctrl(i2s, 0);
 	rockchip_snd_rxctrl(i2s, 0);
+#endif
 
 	return 0;
 

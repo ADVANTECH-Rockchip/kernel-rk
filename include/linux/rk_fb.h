@@ -808,11 +808,18 @@ extern int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 				struct rk_lcdc_win *win, int id);
 extern int rk_fb_unregister(struct rk_lcdc_driver *dev_drv);
 extern struct rk_lcdc_driver *rk_get_lcdc_drv(char *name);
-extern int rk_fb_get_extern_screen(struct rk_screen *screen);
 extern int rk_fb_get_prmry_screen( struct rk_screen *screen);
-extern int rk_fb_set_prmry_screen(struct rk_screen *screen);
+extern int rk_fb_get_screen(struct rk_screen *screen, int prop);
+extern int rk_fb_set_screen(struct rk_screen *screen, int prop);
 extern u32 rk_fb_get_prmry_screen_pixclock(void);
+extern int rk_disp_pwr_ctr_parse_dt_dual_lcd(struct device_node *np,
+				    struct rk_screen *rk_screen);
+extern int rk_fb_get_extern_screen(struct rk_screen *screen);
+extern int rk_fb_set_prmry_screen(struct rk_screen *screen);
 extern int rk_disp_pwr_ctr_parse_dt(struct rk_lcdc_driver *dev_drv);
+#ifdef CONFIG_ARCH_ADVANTECH
+extern u32 rk_fb_is_dual_lcd_mode(void);
+#endif
 extern int rk_disp_pwr_enable(struct rk_lcdc_driver *dev_drv);
 extern int rk_disp_pwr_disable(struct rk_lcdc_driver *dev_drv);
 extern bool is_prmry_rk_lcdc_registered(void);

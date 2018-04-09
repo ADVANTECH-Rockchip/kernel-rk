@@ -37,6 +37,11 @@
 #include <linux/seq_file.h>
 #endif
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <dt-bindings/gpio/gpio.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#endif
 #include "rk32_dp.h"
 
 /*#define EDP_BIST_MODE*/
@@ -119,7 +124,12 @@ static int rk32_edp_init_edp(struct rk32_edp *edp)
 	struct rk_screen *screen = &edp->screen;
 	u32 val = 0;
 
-	rk_fb_get_prmry_screen(screen);
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(rk_fb_is_dual_lcd_mode())
+		rk_fb_get_screen(screen, edp->prop);
+	else
+#endif
+		rk_fb_get_prmry_screen(screen);
 
 	if (cpu_is_rk3288()) {
 		if (screen->lcdc_id == 1)  /*select lcdc*/
@@ -1134,6 +1144,30 @@ static int rk32_edp_config_video(struct rk32_edp *edp,
 	return retval;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+static irqreturn_t hotplg_gpio_isr(int irq, void *arg)
+{
+	int value;
+	struct rk32_edp *edp = arg;
+
+	value = gpio_get_value(edp->hotplg_gpio);
+	if(value & edp->hotplg_active) {
+		dev_info(edp->dev, "%s Received irq - cable in\n",__func__);
+		rk32_edp_set_link_train(edp);
+	} else {
+		dev_info(edp->dev, "%s Received irq - cable out\n",__func__);
+	}
+
+	return IRQ_HANDLED;
+}
+#endif
+
+static void rk32_edp_config_audio(void)
+{
+	rk32_edp_config_audio_share(rk32_edp);
+	rk32_edp_config_spdif(rk32_edp);
+}
+
 static irqreturn_t rk32_edp_isr(int irq, void *arg)
 {
 	struct rk32_edp *edp = arg;
@@ -1712,7 +1746,9 @@ static int rk32_edp_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct device_node *np = pdev->dev.of_node;
 	int ret;
+	int val=0;
 	int lane;
+	int prop;
 
 	if (!np) {
 		dev_err(&pdev->dev, "Missing device tree node.\n");
@@ -1735,15 +1771,50 @@ static int rk32_edp_probe(struct platform_device *pdev)
 
 	edp->video_info.link_rate	= LINK_RATE_1_62GBPS;
 	edp->video_info.lane_count	= LANE_CNT4;
+#ifdef CONFIG_ARCH_ADVANTECH
 	of_property_read_u32(np, "lane_count", &lane);
 	if ((lane == LANE_CNT1) || (lane == LANE_CNT2) || (lane == LANE_CNT4)){
 		edp->video_info.lane_count	= lane;
 	}
-	rk_fb_get_prmry_screen(&edp->screen);
-	if (edp->screen.type != SCREEN_EDP) {
-		dev_err(&pdev->dev, "screen is not edp!\n");
-		return -EINVAL;
+	edp->hotplg_gpio = of_get_named_gpio_flags(np,"hotplg_gpio",0,&edp->hotplg_active);
+	if(gpio_is_valid(edp->hotplg_gpio)){
+		edp->hotplg_active = (edp->hotplg_active == GPIO_ACTIVE_HIGH)? 1:0;
+		ret = devm_gpio_request(&pdev->dev,edp->hotplg_gpio,"edp_hotplg_gpio");
+		if (!ret) {
+			gpio_direction_input(edp->hotplg_gpio);
+			ret = devm_request_irq(&pdev->dev, gpio_to_irq(edp->hotplg_gpio), hotplg_gpio_isr,
+							 IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+							 dev_name(&pdev->dev),edp);
+			if (ret) {
+				gpio_free(edp->hotplg_gpio);
+				dev_err(&pdev->dev, "cannot claim edp_hotplg_gpio IRQ %d\n", gpio_to_irq(edp->hotplg_gpio));
+			}
+		} else
+			dev_err(&pdev->dev, "failed to request GPIO %d, error %d\n",
+					edp->hotplg_gpio, ret);
+	} else
+		dev_err(&pdev->dev, "invalid hotplg_gpio gpio%d\n", edp->hotplg_gpio);
+
+	if(rk_fb_is_dual_lcd_mode()){
+		of_property_read_u32(np, "prop", &prop);
+		pr_info("Use EDP as %s screen\n", (prop == PRMRY) ? "prmry":"extend");
+		edp->prop = prop;
+
+		rk_fb_get_screen(&edp->screen, edp->prop);
+		if (edp->screen.type != SCREEN_EDP) {
+			dev_err(&pdev->dev, "screen is not edp,screen type = %d!\n",edp->screen.type);
+			return -EINVAL;
+		}
+	} else {
+#endif
+		rk_fb_get_prmry_screen(&edp->screen);
+		if (edp->screen.type != SCREEN_EDP) {
+			dev_err(&pdev->dev, "screen is not edp!\n");
+			return -EINVAL;
+		}
+#ifdef CONFIG_ARCH_ADVANTECH
 	}
+#endif
 	platform_set_drvdata(pdev, edp);
 	dev_set_name(edp->dev, "rk32-edp");
 
@@ -1814,7 +1885,12 @@ static int rk32_edp_probe(struct platform_device *pdev)
 	if (!support_uboot_display())
 		rk32_edp_clk_disable(edp);
 	rk32_edp = edp;
-	rk_fb_trsm_ops_register(&trsm_edp_ops, SCREEN_EDP);
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(rk_fb_is_dual_lcd_mode())
+		rk_fb_trsm_ops_register(&trsm_edp_ops, prop);
+	else
+#endif
+		rk_fb_trsm_ops_register(&trsm_edp_ops, SCREEN_EDP);
 #if defined(CONFIG_DEBUG_FS)
 	edp->debugfs_dir = debugfs_create_dir("edp", NULL);
 	if (IS_ERR(edp->debugfs_dir)) {
@@ -1831,8 +1907,12 @@ static int rk32_edp_probe(struct platform_device *pdev)
 	}
 
 #endif
-	dev_info(&pdev->dev, "rk32 edp driver probe success\n");
 
+	dev_info(&pdev->dev, "rk32 edp driver probe success\n");
+	if (!of_property_read_u32(np, "rockchip,edp-audio-enable", &val))
+		edp->audio_en = val;
+	if(edp->audio_en)
+		rk32_edp_config_audio();
 	return 0;
 }
 

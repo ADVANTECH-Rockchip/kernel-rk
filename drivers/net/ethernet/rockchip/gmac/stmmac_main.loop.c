@@ -52,12 +52,7 @@
 #include "stmmac_ptp.h"
 #include "stmmac.h"
 #include "../eth_mac.h"
-#ifdef CONFIG_ARCH_ADVANTECH
-#include <linux/proc_fs.h>
-#include <linux/rockchip/iomap.h>
-#include <linux/rockchip/grf.h>
-struct platform_device *gdev= NULL;
-#endif
+#include <linux/regmap.h>
 
 #undef STMMAC_DEBUG
 /*#define STMMAC_DEBUG*/
@@ -155,6 +150,8 @@ static void stmmac_exit_fs(void);
 #endif
 
 #define STMMAC_COAL_TIMER(x) (jiffies + usecs_to_jiffies(x))
+
+static int rkgmac_loopback_mode = 0;
 
 /**
  * stmmac_verify_args - verify the driver parameters.
@@ -705,8 +702,13 @@ static void stmmac_adjust_link(struct net_device *dev)
 	unsigned int fc = priv->flow_ctrl, pause_time = priv->pause;
 	struct bsp_priv *bsp_priv = priv->plat->bsp_priv;
 
+	if (rkgmac_loopback_mode == 1) return;
+
 	if (phydev == NULL)
 		return;
+
+	DBG(probe, DEBUG, "stmmac_adjust_link: called.  address %d link %d\n",
+	    phydev->addr, phydev->link);
 
 	spin_lock_irqsave(&priv->lock, flags);
 
@@ -873,20 +875,20 @@ static ssize_t set_phy_reg(struct device *dev,struct device_attribute *attr,
 
 static ssize_t show_phy_regValue(struct device *dev,
 					struct device_attribute *attr, char *buf) {
-	struct phy_device *phy_dev = dev_get_drvdata(dev);
+	struct stmmac_priv * priv = dev_get_drvdata(dev);
 	int ret = 0;
 	int val;
 #if 0
-	val = phy_read(phy_dev, gPhyReg);
+	val = phy_read(priv->phydev, gPhyReg);
 	ret = snprintf(buf, PAGE_SIZE, "phy reg 0x%x = 0x%x\n", gPhyReg, val);
 #else
 	int i=0;
 
 	for (i=0; i<32; i++) {
-		printk("%d: 0x%x\n", i, phy_read(phy_dev, i));
+		printk("%d: 0x%x\n", i, phy_read(priv->phydev, i));
 	}
 
-	val = phy_read(phy_dev, gPhyReg);
+	val = phy_read(priv->phydev, gPhyReg);
 	ret = snprintf(buf, PAGE_SIZE, "phy reg 0x%x = 0x%x\n", gPhyReg, val);
 #endif
 	return ret;
@@ -898,23 +900,111 @@ static ssize_t set_phy_regValue(struct device *dev,
 	int ovl;
 	int ret;
 
-	struct phy_device *phy_dev = dev_get_drvdata(dev);
+	struct stmmac_priv * priv = dev_get_drvdata(dev);
 	ret = kstrtoint(buf, 0, &ovl);
 	printk("%s----reg 0x%x: ovl=0x%x\n", __FUNCTION__, gPhyReg, ovl);
-	phy_write(phy_dev, gPhyReg, ovl);
+	phy_write(priv->phydev, gPhyReg, ovl);
 	return count;
+}
+
+static int gLoopbackSpeed = 100;
+struct sk_buff * loopback_rx_skb;
+struct sk_buff * loopback_tx_skb;
+
+/*
+	delay_test:
+	0: run delay test with all tx/rx delayline values
+	1: run loopback using current tx/rx delayline value
+
+	type:
+	0: GMAC loopback
+	1: PHY loopback
+	2: RJ45 loopback
+*/
+#define LOOPBACK_TYPE_GMAC	0
+#define LOOPBACK_TYPE_PHY	1
+#define LOOPBACK_TYPE_RJ45	2
+int lb(struct stmmac_priv *priv, int delay_test, int type);
+
+static ssize_t show_phy_loopback(struct device *dev,
+					struct device_attribute *attr, char *buf) {
+	int ret;
+	struct stmmac_priv * priv = dev_get_drvdata(dev);
+
+	ret = lb(priv, 0, LOOPBACK_TYPE_PHY);
+
+	if (!ret)
+		ret = snprintf(buf, PAGE_SIZE, "PHY loopback: PASS\n");
+	else
+		ret = snprintf(buf, PAGE_SIZE, "PHY loopback: FAIL\n");
+
+	return ret;
+}
+
+static ssize_t show_rj45_loopback(struct device *dev,
+					struct device_attribute *attr, char *buf) {
+	int ret;
+	struct stmmac_priv * priv = dev_get_drvdata(dev);
+
+	ret = lb(priv, 0, LOOPBACK_TYPE_RJ45);
+
+	if (!ret)
+		ret = snprintf(buf, PAGE_SIZE, "RJ45 loopback: PASS\n");
+	else
+		ret = snprintf(buf, PAGE_SIZE, "RJ45 loopback: FAIL\n");
+
+	return ret;
+}
+
+static ssize_t show_loopback_speed(struct device *dev,
+					struct device_attribute *attr,
+					char *buf) {
+	int ret;
+
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", gLoopbackSpeed);
+	return ret;
+}
+
+static ssize_t set_loopback_speed(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count) {
+	int speed;
+	int ret;
+
+	ret = kstrtoint(buf, 0, &speed);
+	printk("%s: loopback speed set to %d\n", __FUNCTION__, speed);
+
+	gLoopbackSpeed = speed;
+	return count;
+}
+
+static ssize_t show_delay_test(struct device *dev,
+					struct device_attribute *attr, char *buf) {
+	int ret;
+	struct stmmac_priv * priv = dev_get_drvdata(dev);
+
+	lb(priv, 1, LOOPBACK_TYPE_PHY);
+
+	ret = snprintf(buf, PAGE_SIZE, "done\n");
+
+	return ret;
 }
 
 static struct device_attribute phy_reg_attrs[] = {
 	__ATTR(phy_reg, S_IRUGO | S_IWUSR, show_phy_reg, set_phy_reg),
-	__ATTR(phy_regValue, S_IRUGO | S_IWUSR, show_phy_regValue, set_phy_regValue)
+	__ATTR(phy_regValue, S_IRUGO | S_IWUSR, show_phy_regValue, set_phy_regValue),
+	__ATTR(loopback_speed, S_IRUGO | S_IWUSR, show_loopback_speed, set_loopback_speed),
+	__ATTR(phy_loopback, S_IRUGO, show_phy_loopback, NULL),
+	__ATTR(rj45_loopback, S_IRUGO, show_rj45_loopback, NULL),
+	__ATTR(delay_test, S_IRUGO, show_delay_test, NULL)
 };
 
-int gmac_create_sysfs(struct phy_device * phy_dev) {
+int gmac_create_sysfs(struct phy_device * phy_dev, struct stmmac_priv *priv) {
 	int r;
 	int t;
 
-	dev_set_drvdata(&phy_dev->dev, phy_dev);
+	dev_set_drvdata(&phy_dev->dev, priv);
 	for (t = 0; t < ARRAY_SIZE(phy_reg_attrs); t++) {
 		r = device_create_file(&phy_dev->dev,&phy_reg_attrs[t]);
 		if (r) {
@@ -1063,7 +1153,7 @@ static int stmmac_init_phy(struct net_device *dev)
 
 	priv->phydev = phydev;
 
-	gmac_create_sysfs(phydev);
+	gmac_create_sysfs(phydev, priv);
 
 	if ((bsp_priv->chip == RK322X_GMAC) && (bsp_priv->internal_phy)) {
 		rk322x_phy_adjust(phydev);
@@ -1794,6 +1884,8 @@ static int stmmac_open(struct net_device *dev)
 	struct stmmac_priv *priv = netdev_priv(dev);
 	int ret;
 
+	rkgmac_loopback_mode = 0;
+
 	if ((priv->plat) && (priv->plat->bsp_priv)) {
 		struct bsp_priv * bsp_priv = priv->plat->bsp_priv;
 		if (bsp_priv) { 
@@ -1807,6 +1899,7 @@ static int stmmac_open(struct net_device *dev)
 	}
 
 	stmmac_check_ether_addr(priv);
+
 
 	if (priv->pcs != STMMAC_PCS_SGMII && priv->pcs != STMMAC_PCS_TBI &&
 	    priv->pcs != STMMAC_PCS_RTBI) {
@@ -2385,6 +2478,11 @@ static int stmmac_rx(struct stmmac_priv *priv, int limit)
 				print_pkt(skb->data, frame_len);
 			}
 #endif
+			if (rkgmac_loopback_mode == 1) {
+				memcpy(loopback_rx_skb->data, skb->data, frame_len);
+				loopback_rx_skb->len = frame_len;
+			}
+
 			skb->protocol = eth_type_trans(skb, priv->dev);
 
 			if (unlikely(!coe))
@@ -2920,262 +3018,6 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 	return 0;
 }
 
-#ifdef CONFIG_ARCH_ADVANTECH
-#define REALTEK_8211E_PHY_ID	0x001cc915
-#define TI_DP83867_PHY_ID	0x2000a231
-#define DP83867_DEVADDR		0x1f
-#define DP83867_RGMIICTL	0x0032
-#define DP83867_RGMIIDCTL	0x0086
-#define DP83867_RGMII_TX_CLK_DELAY_EN		BIT(1)
-#define DP83867_RGMII_RX_CLK_DELAY_EN		BIT(0)
-#define DP83867_RGMII_TX_CLK_DELAY_SHIFT	4
-
-static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,int devad)
-{
-	int value = -1;
-
-	/* Write the desired MMD Devad */
-	phy_write(phydev,  0x0d, devad);
-
-	/* Write the desired MMD register address */
-	phy_write(phydev,  0x0e, prtad);
-
-	/* Select the Function : DATA with no post increment */
-	phy_write(phydev,  0x0d, (devad | 0x4000));
-
-	/* Read the content of the MMD's selected register */
-	value = phy_read(phydev,  0x0e);
-	return value;
-}
-
-static void phy_write_mmd_indirect(struct phy_device *phydev, int prtad,
-			    int devad, u32 data)
-{
-	/* Write the desired MMD Devad */
-	phy_write(phydev,  0x0d, devad);
-
-	/* Write the desired MMD register address */
-	phy_write(phydev,  0x0e, prtad);
-
-	/* Select the Function : DATA with no post increment */
-	phy_write(phydev,  0x0d, (devad | 0x4000));
-
-	/* Write the data into MMD's selected register */
-	phy_write(phydev,  0x0e, data);
-}
-
-static int net_testmode_write(struct file *file, const char __user * buffer,
-               size_t count, loff_t *offset)
-{
-	int i,addr;
-	char line[8];
-	int ret;
-	struct platform_device *pdev = (struct platform_device *)gdev;
-	struct net_device *ndev = platform_get_drvdata(pdev);
-	struct stmmac_priv *stmmac = netdev_priv(ndev);
-	struct phy_device *phydev;
-	size_t buf_size;
-
-	memset(line,0,sizeof(line));
-	buf_size = min(count, (sizeof(line)-1));
-	ret = copy_from_user(line, buffer, buf_size);
-	if (ret)
-		return -EFAULT;
-	line[buf_size] = 0;
-
-	for (i = 0 ; i < PHY_MAX_ADDR; i++)
-	{
-		if (stmmac->mii->phy_map[i] && stmmac->mii->phy_map[i]->phy_id)
-			break;
-	}
-	if(i >= PHY_MAX_ADDR)
-		return -ENODEV;
-
-	phydev = stmmac->mii->phy_map[i];
-	addr = phydev->addr;
-
-	if(TI_DP83867_PHY_ID == phydev->phy_id)
-	{
-		/* Access TI DP83867 internal register to measure IEEE waveform */
-		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x8000);//reset PHY
-		stmmac->mii->write(stmmac->mii, addr, 0x00, 0x0140);//1000 Base-T Mode
-		stmmac->mii->write(stmmac->mii, addr, 0x10, 0x5008);//forced MDI Mode
-	}
-	else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
-	{
-		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0005);
-		stmmac->mii->write(stmmac->mii, addr, 0x05, 0x8b86);
-		stmmac->mii->write(stmmac->mii, addr, 0x06, 0xe200);
-		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0007);
-		stmmac->mii->write(stmmac->mii, addr, 0x1e, 0x0020);
-		stmmac->mii->write(stmmac->mii, addr, 0x15, 0x0108);
-		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0000);
-	}
-	else
-		return -ENODEV;
-	
-	if (strstr(line, "1"))
-	{
-		printk("1000M BASE-T test mode 1\n");
-		if(TI_DP83867_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x3B00);//Test Mode 1
-			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);//output test mode to all channels
-			phy_write_mmd_indirect(phydev, 0x01D5, DP83867_DEVADDR, 0xF508);
-		}
-		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x2200);
-		}
-	}
-	else if (strstr(line, "2"))
-	{
-		if(TI_DP83867_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, i, 0x09, 0x5B00);
-			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
-		}
-		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x4200);
-		}
-	}
-	else if (strstr(line, "3"))
-	{
-		if(TI_DP83867_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, i, 0x09, 0x7B00);
-			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
-		}
-		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x6200);
-		}
-	}
-	else if (strstr(line, "4"))
-	{
-		printk("1000M BASE-T test mode 4\n");
-		if(TI_DP83867_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, i, 0x09, 0x9B00);//Test Mode 4
-			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
-		}
-		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x8200);
-		}
-	}
-	else if (strstr(line, "5"))
-	{
-		printk("100M BASE-TX test mode 5\n");
-		if(TI_DP83867_PHY_ID == phydev->phy_id)
-		{
-			stmmac->mii->write(stmmac->mii, addr, 0x00, 0x2100);//programs DUT to 100Base-TX Mode
-			stmmac->mii->write(stmmac->mii, addr, 0x09, 0xBB00);//Test Mode 5
-			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);//output test mode to all channels
-		}
-	}
-
-	return count;
-}
-
-static int gmac_delay_write(struct file *file, const char __user * buffer,
-               size_t count, loff_t *offset)
-{
-	unsigned int tx_delay,rx_delay;
-	char line[32],*p;
-	int ret;
-	size_t buf_size;
-	
-	memset(line,0,sizeof(line));
-	buf_size = min(count, (sizeof(line)-1));
-	ret = copy_from_user(line, buffer, buf_size);
-	if (ret)
-		return -EFAULT;
-	line[buf_size] = 0;
-
-	p = line;
-	tx_delay=simple_strtoul(p, NULL, 16);
-	p=strstr(p," ");
-	rx_delay=simple_strtoul(p+1, NULL, 16);
-	printk("gmac tx_delay:0x%x,rx_delay:0x%x\n",tx_delay,rx_delay);
-	if(rx_delay)
-		writel_relaxed((0xBF80 << 16) | (1<<15) | (rx_delay<<7), RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
-	else
-		writel_relaxed((0xBF80 << 16) | (0<<15), RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
-	dsb(sy);
-	if(tx_delay)
-		writel_relaxed((0x407F << 16) | (1<<14) | (tx_delay), RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
-	else
-		writel_relaxed((0x407F << 16) | (0<<14), RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
-	return count;
-}
-
-static int phy_delay_write(struct file *file, const char __user * buffer,
-               size_t count, loff_t *offset)
-{
-	unsigned int i,tx_delay,rx_delay;
-	char line[32],*p;
-	int ret;
-	struct platform_device *pdev = (struct platform_device *)gdev;
-	struct net_device *ndev = platform_get_drvdata(pdev);
-	struct stmmac_priv *stmmac = netdev_priv(ndev);
-	struct phy_device *phydev;
-	size_t buf_size;
-
-	memset(line,0,sizeof(line));
-	buf_size = min(count, (sizeof(line)-1));
-	ret = copy_from_user(line, buffer, buf_size);
-	if (ret)
-		return -EFAULT;
-	line[buf_size] = 0;
-
-	for (i = 0 ; i < PHY_MAX_ADDR; i++)
-	{
-		if (stmmac->mii->phy_map[i] && stmmac->mii->phy_map[i]->phy_id)
-			break;
-	}
-	if(i >= PHY_MAX_ADDR)
-		return -ENODEV;
-	phydev = stmmac->mii->phy_map[i];
-
-	p = line;
-	tx_delay=simple_strtoul(p, NULL, 16);
-	p=strstr(p," ");
-	rx_delay=simple_strtoul(p+1, NULL, 16);
-	printk("phy tx_delay:0x%x,rx_delay:0x%x\n",tx_delay,rx_delay);
-
-	if(TI_DP83867_PHY_ID == phydev->phy_id)
-	{
-		tx_delay &= 0xf;
-		rx_delay &= 0xf;
-
-		ret = phy_read_mmd_indirect(phydev, DP83867_RGMIICTL,DP83867_DEVADDR);
-		ret |= (DP83867_RGMII_TX_CLK_DELAY_EN |
-			DP83867_RGMII_RX_CLK_DELAY_EN);
-		phy_write_mmd_indirect(phydev, DP83867_RGMIICTL,
-					   DP83867_DEVADDR, ret);
-		phy_write_mmd_indirect(phydev, DP83867_RGMIIDCTL,
-						DP83867_DEVADDR, (rx_delay | (tx_delay<< DP83867_RGMII_TX_CLK_DELAY_SHIFT)));
-	}
-	
-	return count;
-}
-
-static const struct file_operations net_testmode_fops = {
-	.owner = THIS_MODULE,
-	.write = net_testmode_write,
-};
-static const struct file_operations gmac_delay_fops = {
-	.owner = THIS_MODULE,
-	.write = gmac_delay_write,
-};
-static const struct file_operations phy_delay_fops = {
-	.owner = THIS_MODULE,
-	.write = phy_delay_write,
-};
-#endif
-
 /**
  * stmmac_dvr_probe
  * @device: device pointer
@@ -3294,14 +3136,6 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		}
 	}
 #endif
-
-#ifdef CONFIG_ARCH_ADVANTECH
-	gdev = to_platform_device(device);
-	proc_create("net_testmode", 0777, NULL, &net_testmode_fops);
-	proc_create("gmac_delay", 0777, NULL, &gmac_delay_fops);
-	proc_create("phy_delay", 0777, NULL, &phy_delay_fops);
-#endif
-
 	return priv;
 #if 0
 error_mdio_register:
@@ -3558,6 +3392,218 @@ err:
 
 __setup("stmmaceth=", stmmac_cmdline_opt);
 #endif /* MODULE */
+
+int rkgmac_setup_desc_rings(struct stmmac_priv * priv) 
+{
+	return 0;
+}
+ 
+int rkgmac_setup_loopback_test(struct stmmac_priv * priv) 
+{
+	return 0;
+} 
+
+void rkgmac_create_lbtest_frame(struct sk_buff *skb,
+                                      unsigned int frame_size)
+{
+	memset(skb->data, 0xFF, frame_size);
+	frame_size &= ~1;
+	memset(&skb->data[frame_size / 2], 0xAA, frame_size / 2 - 1);
+	memset(&skb->data[frame_size / 2 + 10], 0xBE, 1);
+	memset(&skb->data[frame_size / 2 + 12], 0xAF, 1);
+}
+
+int rkgmac_check_lbtest_frame(struct sk_buff *skb,
+                                    unsigned int frame_size)
+{
+	frame_size &= ~1;
+	if (*(skb->data + 3) == 0xFF)
+		if ((*(skb->data + frame_size / 2 + 10) == 0xBE) &&
+			(*(skb->data + frame_size / 2 + 12) == 0xAF))
+			return 0;
+	return 13;
+}
+
+void enable_phy_loopback(struct stmmac_priv * priv, int type)
+{
+	int val;
+	u32 ctrl;
+
+	rkgmac_loopback_mode = 1;
+
+	ctrl = readl(priv->ioaddr + MAC_CTRL_REG);
+	ctrl |= priv->hw->link.duplex;
+
+	if (gLoopbackSpeed == 1000)
+		ctrl &= ~priv->hw->link.port;
+	else
+		ctrl |= priv->hw->link.port;
+
+	writel(ctrl, priv->ioaddr + MAC_CTRL_REG);
+
+	val = phy_read(priv->phydev, MII_BMCR);
+	//printk("MII_BMCR--1: 0x%x\n", val);
+
+	val &= ~(BMCR_ANENABLE);
+	if (type == LOOPBACK_TYPE_PHY)
+		val |= BMCR_LOOPBACK;
+	else
+		val &= (~BMCR_LOOPBACK);
+
+	if (gLoopbackSpeed == 1000) {
+		val |= BMCR_SPEED1000;
+	}
+	else if (gLoopbackSpeed == 100) {
+		val &= ~BMCR_SPEED1000;
+		val |= BMCR_SPEED100;
+	}
+	else if (gLoopbackSpeed == 10) {
+		val &= ~BMCR_SPEED1000;
+		val &= ~BMCR_SPEED100;
+	}
+
+	val |= BMCR_FULLDPLX;
+
+	phy_write(priv->phydev, MII_BMCR, val);
+
+	val = phy_read(priv->phydev, MII_BMCR);
+	//printk("MII_BMCR--2: 0x%x\n", val);
+
+	if (likely(priv->plat->fix_mac_speed))
+		priv->plat->fix_mac_speed(priv->plat->bsp_priv, /*1000*/gLoopbackSpeed);
+}
+
+void disable_phy_loopback(struct stmmac_priv *priv)
+{	
+	int val;
+	val = phy_read(priv->phydev, MII_BMCR);
+	val |= BMCR_ANENABLE;
+	val &= (~BMCR_LOOPBACK);
+	phy_write(priv->phydev, MII_BMCR, val);
+
+	val = phy_read(priv->phydev, MII_BMCR);
+	//printk("MII_BMCR--3: 0x%x\n", val);
+}
+
+int rkgmac_run_loopback_test(struct stmmac_priv * priv, unsigned int skb_size) 
+{
+	struct sk_buff *tx_skb;
+	struct net_device *ndev = priv->dev;
+	int i;
+	int ret;
+
+        //disable_irq(ndev->irq);
+
+	netif_device_detach(ndev);
+	netif_stop_queue(ndev);
+	napi_disable(&priv->napi);
+
+	tx_skb = alloc_skb(skb_size, GFP_KERNEL);
+	if (!tx_skb) {
+		printk("%s: tx_skb alloc_skb failed\n", __FUNCTION__);
+	}
+
+	memcpy(tx_skb->data, loopback_tx_skb->data, loopback_tx_skb->len);
+	tx_skb->len = loopback_tx_skb->len;
+
+	skb_put(tx_skb, skb_size);
+
+	stmmac_tx_clean(priv);
+	stmmac_xmit(tx_skb, priv->dev);
+
+	if (gLoopbackSpeed == 1000)
+		udelay(20);
+	else if (gLoopbackSpeed == 100)
+		udelay(200);
+	else
+		udelay(2000);
+
+	stmmac_rx(priv, 64);
+
+	for (i=0; i<skb_size; i++) {
+		if (loopback_tx_skb->data[i] != loopback_rx_skb->data[i]) {
+			//printk("TX[%d]=0x%x\n", i, loopback_tx_skb->data[i]);
+			//printk("RX[%d]=0x%x\n", i, loopback_rx_skb->data[i]);
+			break;
+		}
+	}
+
+	if (i < skb_size) {
+		ret = -1;
+	} else {
+		ret = 0;
+	}
+
+	netif_device_attach(ndev);
+	netif_start_queue(ndev);
+	napi_enable(&priv->napi);
+        //enable_irq(ndev->irq);
+
+	//kfree_skb(tx_skb);
+	return ret;
+}
+
+extern void SET_RGMII(struct bsp_priv *bsp_priv, int type, int tx_delay, int rx_delay);
+int lb(struct stmmac_priv *priv, int delay_test, int type)
+{
+	int ret = 0;
+	int skb_size = 512;
+
+	printk("%s: %d Mbps loopback from PHY\n", __FUNCTION__, gLoopbackSpeed);
+
+	enable_phy_loopback(priv, type);
+	loopback_rx_skb = alloc_skb(skb_size, GFP_KERNEL);
+	if (!loopback_rx_skb) {
+		printk("%s: loopback_rx_skb alloc_skb failed\n", __FUNCTION__);
+	}
+
+	loopback_tx_skb = alloc_skb(skb_size, GFP_KERNEL);
+	if (!loopback_tx_skb) {
+		printk("%s: loopback_tx_skb alloc_skb failed\n", __FUNCTION__);
+	}
+
+	rkgmac_create_lbtest_frame(loopback_tx_skb, skb_size);
+	skb_put(loopback_tx_skb, skb_size);
+
+	msleep(100);
+
+	if (delay_test) {
+		int tx_delay = 0;
+		int rx_delay = 0;
+		//u32 ctrl;
+		struct bsp_priv * bsp_priv = priv->plat->bsp_priv;
+
+		for (tx_delay = 0x0; tx_delay <= 0x7F; tx_delay++ ) {
+			printk("TX(0x%x): ", tx_delay);
+			for (rx_delay = 0x0; rx_delay <= 0x7F; rx_delay++ ) {
+				memset(loopback_rx_skb->data, 0, skb_size);
+				loopback_rx_skb->len = 0;
+
+				//ctrl = (0xffff << 16) | (rx_delay << 7) | tx_delay;
+				//regmap_write(bsp_priv->grf, 0x0900, ctrl);
+				SET_RGMII(bsp_priv, bsp_priv->chip, tx_delay, rx_delay);
+
+				ret = rkgmac_run_loopback_test(priv, skb_size);
+				if (!ret) printk("O");
+				else printk(" ");
+				udelay(20);
+			}
+			printk("\n");
+		}
+		ret = 0;
+	} else {
+		memset(loopback_rx_skb->data, 0, skb_size);
+		loopback_rx_skb->len = 0;
+		ret = rkgmac_run_loopback_test(priv, skb_size);
+	}
+
+	kfree(loopback_rx_skb);
+	kfree(loopback_tx_skb);
+
+	return ret;
+}
+
+
 
 MODULE_DESCRIPTION("STMMAC 10/100/1000 Ethernet device driver");
 MODULE_AUTHOR("Giuseppe Cavallaro <peppe.cavallaro@st.com>");

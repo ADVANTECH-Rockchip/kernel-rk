@@ -121,7 +121,7 @@ static void hdmi_wq_set_video(struct hdmi *hdmi)
 		     hdmi->colordepth == 10))
 			video->color_output_depth = 10;
 	}
-	pr_info("hdmi output corlor mode is %d\n", video->color_output);
+	pr_info("hdmi output color mode is %d\n", video->color_output);
 	if ((hdmi->property->feature & SUPPORT_YCBCR_INPUT) &&
 	    (video->color_output == HDMI_COLOR_YCBCR444 ||
 	     video->color_output == HDMI_COLOR_YCBCR422))

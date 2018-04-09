@@ -15,6 +15,7 @@ endif
 obj-y += efuse.o
 obj-y += pvtm.o
 obj-y += rk_system_status.o
+obj-$(CONFIG_ARCH_ADVANTECH) += board.o pm-adv.o
 obj-$(CONFIG_PM) += rockchip_pm.o sleep.o rk312x_sleep.o
 obj-$(CONFIG_RK_FPGA) += fpga.o
 obj-$(CONFIG_CPU_IDLE) += cpuidle.o

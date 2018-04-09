@@ -30,7 +30,7 @@ static const struct pll_clk_set rk3188plus_pll_com_table[] = {
 	_RK3188PLUS_PLL_SET_CLKS(1188000,	2,	99,	1),
 	_RK3188PLUS_PLL_SET_CLKS(891000,	8,	594,	2),
 	_RK3188PLUS_PLL_SET_CLKS(768000,	1,	64,	2),
-	_RK3188PLUS_PLL_SET_CLKS(594000,	2,	198,	4),
+	_RK3188PLUS_PLL_SET_CLKS(594000,	1,	198,	8),
 	_RK3188PLUS_PLL_SET_CLKS(576000,	1,	48,	2),
 	_RK3188PLUS_PLL_SET_CLKS(500000,	3,	250,	4),
 	_RK3188PLUS_PLL_SET_CLKS(408000,	1,	68,	4),
@@ -177,6 +177,10 @@ static const struct apll_clk_set rk3288_apll_table[] = {
 	_RK3288_APLL_SET_CLKS(126,	2,	84,	8,	2,      2,      4,      4,      4),
 	_RK3288_APLL_SET_CLKS(48,  	2,	32,	8,	2,      2,      4,      4,      4),
 	_RK3288_APLL_SET_CLKS(0,	1,	32,	16,	2,      2,      4,      4,      4),
+};
+
+static const struct pll_clk_set rk3288_gpll_594_low_jitter[] = {
+	_RK3188PLUS_PLL_SET_CLKS(594000, 1, 198, 8),
 };
 
 static const struct apll_clk_set rk3036_apll_table[] = {
@@ -957,6 +961,8 @@ static int clk_pll_set_rate_3188plus(struct clk_hw *hw, unsigned long rate,
 	}
 
 	if (cpu_is_rk3288() && ((rate == 297*MHZ) || (rate == 594*MHZ))) {
+		if (rate == 594 * MHZ)
+			clk_set = (struct pll_clk_set *)(rk3288_gpll_594_low_jitter);
 		if((strncmp(__clk_get_name(hw->clk), "clk_gpll",
 			strlen("clk_gpll")) == 0)) {
 

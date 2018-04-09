@@ -103,15 +103,13 @@ static struct map_desc rk3288_io_desc[] __initdata = {
 	RK_DEVICE(RK_TIMER_VIRT, RK3288_TIMER6_PHYS, RK3288_TIMER_SIZE),
 };
 
-#define DP83867_DEVADDR		0x1f
-#define DP83867_RGMIICTL	0x0032
-#define DP83867_RGMIIDCTL	0x0086
-#define DP83867_RGMII_TX_CLK_DELAY_EN		BIT(1)
-#define DP83867_RGMII_RX_CLK_DELAY_EN		BIT(0)
-#define DP83867_RGMII_TX_CLK_DELAY_SHIFT	4
+#ifdef CONFIG_ARCH_ADVANTECH
+extern void pm_adv_reboot(void);
 
-static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,
-				  int devad, int addr)
+#define TI_DP83867_PHY_ID	0x2000a231
+#define DP83867_DEVADDR		0x1f
+
+static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,int devad)
 {
 	int value = -1;
 
@@ -130,7 +128,7 @@ static int phy_read_mmd_indirect(struct phy_device *phydev, int prtad,
 }
 
 void phy_write_mmd_indirect(struct phy_device *phydev, int prtad,
-			    int devad, int addr, u32 data)
+			    int devad, u32 data)
 {
 	/* Write the desired MMD Devad */
 	phy_write(phydev,  0x0d, devad);
@@ -147,41 +145,36 @@ void phy_write_mmd_indirect(struct phy_device *phydev, int prtad,
 
 static int dp83867_phy_fixup(struct phy_device *phydev)
 {
-	unsigned int val, delay;
+	unsigned int addr,mask,val,len,ori;
+	int i;
+	const __be32 *parp;
+	struct device_node *np;
 
-	printk("%s,phydev->addr:%d,phydev->interface:%d....\n",__func__,phydev->addr,phydev->interface);
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII){
-		val = phy_read_mmd_indirect(phydev, DP83867_RGMIICTL,
-								DP83867_DEVADDR, phydev->addr);
-#if 1
-		val |= (DP83867_RGMII_TX_CLK_DELAY_EN |
-			DP83867_RGMII_RX_CLK_DELAY_EN);
+		np = of_find_compatible_node(NULL, NULL, "rockchip,rk3288-gmac");
+		if (np) {
+			parp = of_get_property(np, "phy_reg_config", &len);
+			if (parp == NULL)
+				return 0;
+			len = len / sizeof(int);
+			for (i = 0; i+2 < len; i+=3) {
+				addr = be32_to_cpu(parp[i+0]);
+				mask = be32_to_cpu(parp[i+1]);
+				val = be32_to_cpu(parp[i+2]);
 
-		phy_write_mmd_indirect(phydev, DP83867_RGMIICTL,
-					   DP83867_DEVADDR, phydev->addr, val);
-
-		delay = (0x7 | (0x9 << DP83867_RGMII_TX_CLK_DELAY_SHIFT));
-
-		phy_write_mmd_indirect(phydev, DP83867_RGMIIDCTL,
-				       DP83867_DEVADDR, phydev->addr, delay);
-		val = phy_read_mmd_indirect(phydev, 0x0170,
-								DP83867_DEVADDR, phydev->addr);
-		printk("%s,CLK_O_SEL:0x%x\n",__func__,val);
-		val &= ~(0x1f<<8);
-		val |= (0x4<<8);
-		phy_write_mmd_indirect(phydev, 0x0170,
-					   DP83867_DEVADDR, phydev->addr, val);
-		#else
-		delay = 0;
-		phy_write(phydev,  0x00, 0x40);
-		phy_write_mmd_indirect(phydev, 0x170,
-				       DP83867_DEVADDR, phydev->addr, 0xc01);
-		phy_write(phydev,  0x16, 0xd001);
-		phy_write_mmd_indirect(phydev, 0x86,
-				       DP83867_DEVADDR, phydev->addr, 0x77);
-		phy_write_mmd_indirect(phydev, 0x32,
-				       DP83867_DEVADDR, phydev->addr, 0xd3);
-		#endif
+				if(addr < 0x20) {
+					ori = phy_read(phydev, addr);
+					ori &= ~mask;
+					ori |= val;
+					phy_write(phydev, addr, ori);
+				} else {
+					ori = phy_read_mmd_indirect(phydev, addr, DP83867_DEVADDR);
+					ori &= ~mask;
+					ori |= val;
+					phy_write_mmd_indirect(phydev, addr, DP83867_DEVADDR, ori);
+				}
+			}
+		}
 	}
 
 	return 0;
@@ -190,10 +183,11 @@ static int dp83867_phy_fixup(struct phy_device *phydev)
 static void __init rk3288_gmac_phy_init(void)
 {
 	if (IS_BUILTIN(CONFIG_PHYLIB)) {
-		phy_register_fixup_for_uid(0x2000a231, 0xfffffff0,
+		phy_register_fixup_for_uid(TI_DP83867_PHY_ID, 0xfffffff0,
 				dp83867_phy_fixup);
 	}
 }
+#endif
 
 static void __init rk3288_boot_mode_init(void)
 {
@@ -568,6 +562,10 @@ static void rk3288_restart(char mode, const char *cmd)
 	writel_relaxed(boot_mode, RK_PMU_VIRT + RK3288_PMU_SYS_REG1);	// for linux
 	dsb();
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	pm_adv_reboot();
+#endif
+
 	/* pll enter slow mode */
 	writel_relaxed(0xf3030000, RK_CRU_VIRT + RK3288_CRU_MODE_CON);
 	dsb();
@@ -663,7 +661,9 @@ static void __init rk3288_init_late(void)
 #endif
 	if (rockchip_jtag_enabled)
 		clk_prepare_enable(clk_get_sys(NULL, "clk_jtag"));
+#ifdef CONFIG_ARCH_ADVANTECH
 	rk3288_gmac_phy_init();
+#endif
 }
 
 DT_MACHINE_START(RK3288_DT, "Rockchip RK3288 (Flattened Device Tree)")

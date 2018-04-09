@@ -10,6 +10,13 @@
 #include "rk3288-pinctrl.dtsi"
 #include "rk3288-clocks.dtsi"
 
+#ifndef ENABLE_4K_DISPLAY
+#define ENABLE_4K_DISPLAY 1
+#endif
+#ifndef ENABLE_8CH_SPDIF
+#define ENABLE_8CH_SPDIF 0
+#endif
+
 / {
 	compatible = "rockchip,rk3288";
 	rockchip,sram = <&sram>;
@@ -538,7 +545,7 @@
 			<&clk_i2s_pll &clk_gpll>, <&clk_spdif_pll &clk_gpll>,
 			<&usbphy_480m &otgphy2_480m>;
 		rockchip,clocks-init-rate =
-			<&clk_core 792000000>, <&clk_gpll 594000000>,
+			<&clk_core 792000000>, <&clk_gpll 600000000>,
 			/*<&clk_cpll 47000000>,*/ <&clk_npll 1250000000>,
 			<&aclk_bus_src 300000000>, <&aclk_bus 300000000>,
 			<&hclk_bus 150000000>, <&pclk_bus 75000000>,
@@ -818,32 +825,59 @@
 		status = "disabled";
 	};
 
+#if ENABLE_4K_DISPLAY
+	lcdc1: lcdc@ff940000 {
+#else
 	lcdc0: lcdc@ff930000 {
+#endif
 		compatible = "rockchip,rk3288-lcdc";
 		rockchip,prop = <PRMRY>;
 		rockchip,pwr18 = <0>;
 		rockchip,iommu-enabled = <0>;
+#if ENABLE_4K_DISPLAY
+		reg = <0xff940000 0x10000>;
+		interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+#else
 		reg = <0xff930000 0x10000>;
 		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+#endif
 		pinctrl-names = "default", "gpio";
 		pinctrl-0 = <&lcdc0_lcdc>;
 		pinctrl-1 = <&lcdc0_gpio>;
 		status = "disabled";
+#if ENABLE_4K_DISPLAY
+		clocks = <&clk_gates15 7>, <&dclk_lcdc1>, <&clk_gates15 8>, <&pd_vop1>;
+#else
 		clocks = <&clk_gates15 5>, <&dclk_lcdc0>, <&clk_gates15 6>,
 			 <&pd_vop0>;
+#endif
 		clock-names = "aclk_lcdc", "dclk_lcdc", "hclk_lcdc", "pd_lcdc";
 	};
 
+#if ENABLE_4K_DISPLAY
+	lcdc0: lcdc@ff930000 {
+#else
 	lcdc1: lcdc@ff940000 {
+#endif
 		compatible = "rockchip,rk3288-lcdc";
 		rockchip,prop = <EXTEND>;
 		rockchip,pwr18 = <0>;
 		rockchip,iommu-enabled = <0>;
+#if ENABLE_4K_DISPLAY
+		reg = <0xff930000 0x10000>;
+		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+#else
 		reg = <0xff940000 0x10000>;
 		interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+#endif
+
 		status = "disabled";
+#if ENABLE_4K_DISPLAY
+		clocks = <&clk_gates15 5>, <&dclk_lcdc0>, <&clk_gates15 6>, <&pd_vop0>;
+#else
 		clocks = <&clk_gates15 7>, <&dclk_lcdc1>, <&clk_gates15 8>,
 			 <&pd_vop1>;
+#endif
 		clock-names = "aclk_lcdc", "dclk_lcdc", "hclk_lcdc", "pd_lcdc";
 	};
 
@@ -884,6 +918,7 @@
 		pinctrl-1 = <&i2s_gpio>;
 	};
 
+#if ENABLE_8CH_SPDIF
 	spdif: rockchip-spdif@0xff8b0000 {
 		compatible = "rockchip-spdif";
 		reg = <0xff8b0000 0x10000>;//8channel
@@ -898,6 +933,20 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&spdif_tx>;
 	};
+#else
+	spdif: rockchip-spdif@0xff880000 {
+		compatible = "rockchip-spdif";
+		reg = <0xff880000 0x10000>;//2channel
+		clocks = <&clk_spdif>, <&clk_spdif_8ch>,<&clk_gates10 10>;
+		clock-names = "spdif_mclk","spdif_8ch_mclk","spdif_hclk";
+		interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&pdma0 2>; //2channel
+		//#dma-cells = <1>;
+		dma-names = "tx";
+		pinctrl-names = "default";
+		pinctrl-0 = <&spdif_tx>;
+	};
+#endif
 
 	vop1pwm: pwm@ff9401a0 {
 		compatible = "rockchip,vop-pwm";
@@ -997,7 +1046,7 @@
 					tsadc-ch = <1>;
 					temp-limit-enable = <1>;
 					target-temp = <80>;
-					min_temp_limit = <48>;
+					min_temp_limit = <312000>;
 
 					normal-temp-limit = <
 					/* delta-temp delta-freq */
@@ -1009,13 +1058,13 @@
 
 					performance-temp-limit = <
 						/* temp freq */
-						100     816000
+						95     816000
+                        85     1416000
 						>;
 					lkg-adjust-temp = <
 						/*lkg   delta-temp*/
 						40      20
 						>;
-
 					regu-mode-table = <
 						/* freq mode */
 						1008000    4
@@ -1082,7 +1131,7 @@
 					tsadc-ch = <2>;
 					temp-limit-enable = <0>;
 					target-temp = <90>;
-					min_temp_limit = <200>;
+					min_temp_limit = <200000>;
 
 					normal-temp-limit = <
 					/*delta-temp delta-freq*/

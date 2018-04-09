@@ -61,6 +61,10 @@ struct overscan {
 *ft: the time need to display one frame time
 */
 struct rk_screen {
+	struct device	*dev;
+	int prop;
+	struct list_head *pwrlist_head;
+	u32 screen_type;
 	u16 type;
 	u16 lvds_format; 
 	u16 face;
@@ -144,8 +148,9 @@ struct rk29fb_info {
 };
 
 extern void set_lcd_info(struct rk_screen *screen, struct rk29lcd_info *lcd_info);
+extern size_t get_fb_size_dual_lcd(u8 reserved_fb, struct rk_screen *screen);
+extern size_t get_rotate_fb_size(struct rk_screen *screen);
 extern size_t get_fb_size(u8 reserved_fb);
-
 extern void set_tv_info(struct rk_screen *screen);
 extern void set_hdmi_info(struct rk_screen *screen);
 

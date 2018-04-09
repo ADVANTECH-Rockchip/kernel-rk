@@ -36,6 +36,7 @@
 #include <../drivers/staging/android/fiq_debugger/fiq_debugger.h>
 #include <linux/irqchip/arm-gic.h>
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include "rk_fiq_debugger.h"
 
 #if defined(CONFIG_FIQ_DEBUGGER_EL3_TO_EL1) || defined(CONFIG_ARM_PSCI)
@@ -164,10 +165,10 @@ static int debug_getc(struct platform_device *pdev)
 static void debug_putc(struct platform_device *pdev, unsigned int c)
 {
 	struct rk_fiq_debugger *t;
-
+    unsigned int count = 10000;
 	t = container_of(dev_get_platdata(&pdev->dev), typeof(*t), pdata);
 
-	while (!(rk_fiq_read(t, UART_USR) & UART_USR_TX_FIFO_NOT_FULL))
+	while ((!(rk_fiq_read(t, UART_USR) & UART_USR_TX_FIFO_NOT_FULL))&&(count--))
 		cpu_relax();
 	rk_fiq_write(t, c, UART_TX);
 }
@@ -175,9 +176,10 @@ static void debug_putc(struct platform_device *pdev, unsigned int c)
 static void debug_flush(struct platform_device *pdev)
 {
 	struct rk_fiq_debugger *t;
+    unsigned int count = 10000;
 	t = container_of(dev_get_platdata(&pdev->dev), typeof(*t), pdata);
 
-	while (!(rk_fiq_read_lsr(t) & UART_LSR_TEMT))
+	while ((!(rk_fiq_read_lsr(t) & UART_LSR_TEMT))&&(count--))
 		cpu_relax();
 }
 

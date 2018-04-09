@@ -3694,6 +3694,8 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     uint32 nMHz=p_freq_t->nMHz;
 	static struct rk_screen screen;
 	static int dclk_div, down_dclk_div;
+	uint32 down_dclk_en;
+	struct rk_lcdc_driver *lcdc_dev = NULL;
 
 #if defined (DDR_CHANGE_FREQ_IN_LCDC_VSYNC)
     struct ddr_freq_t *p_ddr_freq_t=p_freq_t->p_ddr_freq_t;
@@ -3708,11 +3710,21 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
 #endif
 	if (!screen.mode.pixclock) {
 		rk_fb_get_prmry_screen(&screen);
-		if (screen.lcdc_id == 0)
+		if (screen.lcdc_id == 0) {
+			lcdc_dev = rk_get_lcdc_drv("lcdc0");
 			dclk_div = (cru_readl(RK3288_CRU_CLKSELS_CON(27)) >> 8) & 0xff;
-		else if (screen.lcdc_id == 1)
+		} else if (screen.lcdc_id == 1) {
+			lcdc_dev = rk_get_lcdc_drv("lcdc1");
 			dclk_div = (cru_readl(RK3288_CRU_CLKSELS_CON(29)) >> 8) & 0xff;
+		}
 		down_dclk_div = 64*(dclk_div+1)-1;
+		down_dclk_en = lcdc_dev ? (u32)lcdc_dev->cur_screen->type : 0;
+		if ((down_dclk_en == SCREEN_MIPI) ||
+		    (down_dclk_en == SCREEN_DUAL_MIPI) ||
+		    (down_dclk_en == SCREEN_EDP))
+			down_dclk_en = 1;
+		else
+			down_dclk_en = 0;
 	}
     param.arm_freq = ddr_get_pll_freq(APLL);
     gpllvaluel = ddr_get_pll_freq(GPLL);
@@ -3763,6 +3775,14 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
         }
     }
 #endif
+	rk_fb_set_prmry_screen_status(SCREEN_PREPARE_DDR_CHANGE);
+	if ((screen.lcdc_id == 0) && down_dclk_en)
+		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+			   RK3288_CRU_CLKSELS_CON(27));
+	else if ((screen.lcdc_id == 1) && down_dclk_en)
+		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+			   RK3288_CRU_CLKSELS_CON(29));
+
     for(i=0;i<SRAM_SIZE/4096;i++)
     {
         n=temp[1024*i];
@@ -3786,22 +3806,15 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     param.freq = freq;
     param.freq_slew = freq_slew;
     param.dqstr_value = dqstr_value;
-	rk_fb_set_prmry_screen_status(SCREEN_PREPARE_DDR_CHANGE);
-	if (screen.lcdc_id == 0)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(29));
 
     call_with_stack(fn_to_pie(rockchip_pie_chunk, &FUNC(ddr_change_freq_sram)),
                     &param,
                     rockchip_sram_stack-(NR_CPUS-1)*PAUSE_CPU_STACK_SIZE);
 
-	if (screen.lcdc_id == 0)
+	if ((screen.lcdc_id == 0) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
 		RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
+	else if ((screen.lcdc_id == 1) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
 		RK3288_CRU_CLKSELS_CON(29));
 	rk_fb_set_prmry_screen_status(SCREEN_UNPREPARE_DDR_CHANGE);
@@ -3862,12 +3875,29 @@ static uint32 ddr_change_freq_gpll_dpll(uint32 nMHz)
 }
 #endif
 
+static const u32 cpu_stack_idx[4][4] = {
+	{3, 0, 1, 2},
+	{2, 3, 0, 1},
+	{1, 2, 3, 0},
+	{0, 1, 2, 3},
+};
+
 bool DEFINE_PIE_DATA(cpu_pause[NR_CPUS]);
+u32 DEFINE_PIE_DATA(major_cpu);
 volatile bool *DATA(p_cpu_pause);
-static inline bool is_cpu0_paused(unsigned int cpu) { smp_rmb(); return DATA(cpu_pause)[0]; }
+static inline bool is_major_cpu_paused(unsigned int cpu) { smp_rmb(); return DATA(cpu_pause)[cpu]; }
 static inline void set_cpuX_paused(unsigned int cpu, bool pause) { DATA(cpu_pause)[cpu] = pause; smp_wmb(); }
 static inline bool is_cpuX_paused(unsigned int cpu) { smp_rmb(); return DATA(p_cpu_pause)[cpu]; }
-static inline void set_cpu0_paused(bool pause) { DATA(p_cpu_pause)[0] = pause; smp_wmb();}
+static inline u32 get_major_cpu(void)
+{
+	return (*kern_to_pie(rockchip_pie_chunk, &DATA(major_cpu)));
+}
+
+static inline void set_major_cpu_paused(u32 cpu, bool pause) 
+{
+	DATA(p_cpu_pause)[cpu] = pause;
+	smp_wmb();
+}
 
 /* Do not use stack, safe on SMP */
 void PIE_FUNC(_pause_cpu)(void *arg)
@@ -3875,17 +3905,24 @@ void PIE_FUNC(_pause_cpu)(void *arg)
     unsigned int cpu = (unsigned int)arg;
     
     set_cpuX_paused(cpu, true);
-    while (is_cpu0_paused(cpu));
+    while (is_major_cpu_paused(DATA(major_cpu)));
     set_cpuX_paused(cpu, false);
 }
 
 static void pause_cpu(void *info)
 {
     unsigned int cpu = raw_smp_processor_id();
+	u32 stack_off = cpu_stack_idx[get_major_cpu()][cpu];
+	unsigned long flags;
 
+	stack_off *= PAUSE_CPU_STACK_SIZE;
+	local_irq_save(flags);
+	local_fiq_disable();
     call_with_stack(fn_to_pie(rockchip_pie_chunk, &FUNC(_pause_cpu)),
             (void *)cpu,
-            rockchip_sram_stack-(cpu-1)*PAUSE_CPU_STACK_SIZE);
+            rockchip_sram_stack-stack_off);
+	local_fiq_enable();
+	local_irq_restore(flags);
 }
 
 static void wait_cpu(void *info)
@@ -3906,7 +3943,8 @@ static int call_with_single_cpu(u32 (*fn)(void *arg), void *arg)
 	* takes around 20us. */
 	timeout_ns = ktime_to_ns(ktime_add_ns(ktime_get(), NSEC_PER_SEC));
 	now_ns = ktime_to_ns(ktime_get());
-	set_cpu0_paused(true);
+	*kern_to_pie(rockchip_pie_chunk, &DATA(major_cpu)) = this_cpu;
+	set_major_cpu_paused(this_cpu, true);
 	smp_call_function((smp_call_func_t)pause_cpu, NULL, 0);
 	for_each_online_cpu(cpu) {
 		if (cpu == this_cpu)
@@ -3921,7 +3959,7 @@ static int call_with_single_cpu(u32 (*fn)(void *arg), void *arg)
 	}
 	ret = fn(arg);
 out:
-	set_cpu0_paused(false);
+	set_major_cpu_paused(this_cpu, false);
 	local_bh_enable();
 	smp_call_function(wait_cpu, NULL, true);
 	cpu_maps_update_done();
@@ -4629,6 +4667,7 @@ static int ddr_init(uint32 dram_speed_bin, uint32 freq)
         ddr_print("failed to get ddr clk\n");
         clk = NULL;
     }
+	ddr_print("###cpu=%x\n",smp_processor_id());
     if(freq != 0)
         tmp = clk_set_rate(clk, 1000*1000*freq);
     else

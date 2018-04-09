@@ -763,6 +763,35 @@ static int rockchip_hdmiv2_config_phy(struct hdmi_dev *hdmi_dev)
 	}
 	if (i == hdmi_dev->phy_table_size) {
 		pr_info("%s use default phy settings\n", __func__);
+#ifdef CONFIG_ARCH_ADVANTECH
+		if (hdmi_dev->tmdsclk > 340000000) {
+			rockchip_hdmiv2_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
+					  v_OVERRIDE(1) | v_SLOPEBOOST(3) |
+					  v_TX_SYMON(1) | v_CLK_SYMON(1) |
+					  v_PREEMPHASIS(0));
+			rockchip_hdmiv2_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
+						  v_SUP_TXLVL(2) |
+						  v_SUP_CLKLVL(0));
+		} else if (hdmi_dev->tmdsclk > 165000000) {
+			rockchip_hdmiv2_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
+					  v_OVERRIDE(1) | v_SLOPEBOOST(3) |
+					  v_TX_SYMON(1) | v_CLK_SYMON(1) |
+					  v_PREEMPHASIS(0));
+			rockchip_hdmiv2_write_phy(hdmi_dev,
+						  PHYTX_VLEVCTRL,
+						  v_SUP_TXLVL(2) |
+						  v_SUP_CLKLVL(0));
+		} else {
+			rockchip_hdmiv2_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
+					  v_OVERRIDE(1) | v_SLOPEBOOST(0) |
+					  v_TX_SYMON(1) | v_CLK_SYMON(1) |
+					  v_PREEMPHASIS(0));
+			rockchip_hdmiv2_write_phy(hdmi_dev,
+						  PHYTX_VLEVCTRL,
+						  v_SUP_TXLVL(18) |
+						  v_SUP_CLKLVL(17));
+		}
+#else
 		rockchip_hdmiv2_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
 					  v_OVERRIDE(1) | v_SLOPEBOOST(0) |
 					  v_TX_SYMON(1) | v_CLK_SYMON(1) |
@@ -781,7 +810,9 @@ static int rockchip_hdmiv2_config_phy(struct hdmi_dev *hdmi_dev)
 						  PHYTX_VLEVCTRL,
 						  v_SUP_TXLVL(18) |
 						  v_SUP_CLKLVL(17));
+#endif
 	} else {
+		pr_info("%s use phy_table phy settings\n", __func__);
 		stat = v_OVERRIDE(1) | v_TX_SYMON(1) | v_CLK_SYMON(1) |
 		       v_PREEMPHASIS(hdmi_dev->phy_table[i].pre_emphasis) |
 		       v_SLOPEBOOST(hdmi_dev->phy_table[i].slopeboost);

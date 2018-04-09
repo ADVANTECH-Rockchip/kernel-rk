@@ -146,6 +146,9 @@ struct bsp_priv {
 	unsigned long chip;
 	int tx_delay;
 	int rx_delay;
+#ifdef CONFIG_ARCH_ADVANTECH
+	int gmac_v18sel;
+#endif
 
 	struct clk *clk_mac;
 	struct clk *clk_mac_pll;

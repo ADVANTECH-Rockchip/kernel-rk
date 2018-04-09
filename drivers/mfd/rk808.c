@@ -1337,6 +1337,23 @@ static int rk808_pre_init(struct rk808 *rk808)
 	ret = rk808_clear_bits(rk808, RK808_INT_STS_MSK_REG1,(0x3<<5)); //open rtc int when power on
  	ret = rk808_set_bits(rk808, RK808_RTC_INT_REG,(0x1<<3),(0x1<<3)); //open rtc int when power on
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	/*******change BUCK max inductor current***********/
+	#if 0
+	val = rk808_reg_read(rk808,0x90);
+	val &= (~0xf);
+	val |= 0xf;
+	ret = rk808_reg_write(rk808,0x90,val);
+	if (ret < 0) {
+		printk(KERN_ERR "Unable to write 0x90 reg\n");
+		return ret;
+	}
+	#endif
+	/***to fix pmic slow responsing***/
+	rk808_reg_write(rk808,0x94,0x0f);
+	rk808_reg_write(rk808,0x93,0x05);
+#endif
+
 	return 0;
 }
 

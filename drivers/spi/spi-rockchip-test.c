@@ -227,7 +227,7 @@ static const struct of_device_id rockchip_spi_test_dt_match[] = {
 	{ .compatible = "rockchip,spi_test_bus1_cs0", },
 	{ .compatible = "rockchip,spi_test_bus1_cs1", },
 	{ .compatible = "rockchip,spi_test_bus2_cs0", },
-        { .compatible = "rockchip,spi_test_bus2_cs1", },
+	{ .compatible = "rockchip,spi_test_bus2_cs1", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, rockchip_spi_test_dt_match);

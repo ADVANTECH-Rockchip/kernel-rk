@@ -236,6 +236,20 @@ out:
 	rc = hdmi_ouputmode_select(hdmi, rc);
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+static u32 switch_hdmi_audio = 1;
+
+static int __init setup_switch_hdmi_audio(char *buf)
+{
+	switch_hdmi_audio = simple_strtoul(buf,NULL,10);
+	switch_hdmi_audio = !!!switch_hdmi_audio;
+
+	return 0;
+}
+
+early_param("switch_hdmi_audio", setup_switch_hdmi_audio);
+#endif
+
 static void hdmi_wq_insert(struct hdmi *hdmi)
 {
 	DBG("%s\n", __func__);
@@ -249,7 +263,11 @@ static void hdmi_wq_insert(struct hdmi *hdmi)
 		/*hdmi->autoset = 0;*/
 		hdmi_wq_set_video(hdmi);
 		#ifdef CONFIG_SWITCH
+		#ifdef CONFIG_ARCH_ADVANTECH
+		switch_set_state(&(hdmi->switchdev), switch_hdmi_audio);
+		#else
 		switch_set_state(&(hdmi->switchdev), 1);
+		#endif
 		#endif
 		hdmi_wq_set_audio(hdmi);
 		hdmi_wq_set_output(hdmi, hdmi->mute);

@@ -1,0 +1,69 @@
+/*
+ * Advantech. eDP to hdmi chip ch7525a
+ *
+ */
+
+/ {
+	disp_timings: display-timings {
+		edp_3840x2160: 3840x2160 {
+			screen-type = <SCREEN_EDP>;
+			out-face    = <OUT_P666>;
+			clock-frequency = <148500000>;
+			hactive = <3840>;
+			vactive = <2160>;
+			hback-porch = <80>;
+			hfront-porch = <48>;
+			vback-porch = <26>;
+			vfront-porch = <3>;
+			hsync-len = <32>;
+			vsync-len = <6>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <1>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+		edp_1920x1080: 1920x1080 {
+			screen-type = <SCREEN_EDP>;
+			out-face    = <OUT_P888>;
+			clock-frequency = <148500000>;
+			hactive = <1920>;
+			vactive = <1080>;
+			hback-porch = <148>;
+			hfront-porch = <88>;
+			vback-porch = <36>;
+			vfront-porch = <4>;
+			hsync-len = <44>;
+			vsync-len = <5>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <1>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+		edp_1280x720: 1280x720 {
+			screen-type = <SCREEN_EDP>;
+			out-face    = <OUT_P888>;
+			clock-frequency = <74250000>;
+			hactive = <1280>;
+			vactive = <720>;
+			hback-porch = <220>;
+			hfront-porch = <110>;
+			vback-porch = <20>;
+			vfront-porch = <5>;
+			hsync-len = <40>;
+			vsync-len = <5>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <1>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+	};
+};

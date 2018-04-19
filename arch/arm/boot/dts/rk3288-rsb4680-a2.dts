@@ -198,13 +198,6 @@
 		//pinctrl-0 = <&sleep_btn &power_btn>;
 		reset-gpio = <&gpio0 GPIO_B2 GPIO_ACTIVE_LOW>;
 
-		sleep-key {
-			gpios = <&gpio2 GPIO_A2 GPIO_ACTIVE_HIGH>;
-			linux,code = <116>;
-			label = "power";
-			gpio-key,wakeup;
-		};
-
 		power-key {
 			gpios = <&gpio0 GPIO_A5 GPIO_ACTIVE_LOW>;
 			linux,code = <116>;
@@ -611,6 +604,10 @@
 #else
 	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC1>;
 #endif
+};
+
+&spdif {
+	status = "disabled";
 };
 
 &ps2c {

@@ -1115,8 +1115,8 @@ static int rk3288_lcdc_set_dclk(struct rk_lcdc_driver *dev_drv, int reset_rate)
 	    container_of(dev_drv, struct lcdc_device, driver);
 	struct rk_screen *screen = dev_drv->cur_screen;
 
-        if (reset_rate)
-	        ret = clk_set_rate(lcdc_dev->dclk, screen->mode.pixclock);/*set pll */
+    if (reset_rate)
+        ret = clk_set_rate(lcdc_dev->dclk, screen->mode.pixclock);/*set pll */
 	if (ret)
 		dev_err(dev_drv->dev, "set lcdc%d dclk failed\n", lcdc_dev->id);
 	lcdc_dev->pixclock =

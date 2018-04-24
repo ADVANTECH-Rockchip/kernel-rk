@@ -507,14 +507,6 @@
 	pinctrl-1 = <&lcdc0_gpio>;
 	rockchip,mirror = <NO_MIRROR>;
 	rockchip,cabc_mode = <0>;
-	power_ctr: power_ctr {
-		rockchip,debug = <0>;
-		lcd_en:lcd_en {
-			rockchip,power_type = <GPIO>;
-			gpios = <&gpio1 GPIO_D2 GPIO_ACTIVE_HIGH>;
-			rockchip,delay = <10>;
-		};
-	};
 };
 
 #if ENABLE_4K_DISPLAY

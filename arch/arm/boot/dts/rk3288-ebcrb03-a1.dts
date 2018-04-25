@@ -7,7 +7,6 @@
 #include "lcd-g070vw01.dtsi"
 #include "lcd-g150xgel05.dtsi"
 #include "lcd-g215hvn01.dtsi"
-#include "lcd-ch7517a.dtsi"
 #include "lcd-ch7525a.dtsi"
 //#include "vtl_ts_sdk8846.dtsi"
 //#include "rk3288-adv-sensor.dtsi"

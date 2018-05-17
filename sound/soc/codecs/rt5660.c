@@ -1821,6 +1821,7 @@ static int rt5660_parse_dt_property(struct device *dev,
 {
 	struct device_node *node = dev->of_node;
 	int ret;
+	int delay_time;
 	enum of_gpio_flags flags;
 
 	if (!node)
@@ -1857,7 +1858,14 @@ static int rt5660_parse_dt_property(struct device *dev,
 			dev_err(dev,"codec_avdd_gpio set ERROR:%d\n",ret);
 			return ret;
 		}
-		mdelay(5);
+
+		if(of_property_read_u32(node,"codec-avdd-delay",&delay_time))
+		{
+			dev_err(dev,"codec-avdd-delay time get error,use default delay time\n");
+			delay_time = 5;
+		}
+		dev_dbg(dev,"codec-avdd-delay delay time=%d\n",delay_time);
+		mdelay(delay_time);
 	} else {
 		dev_err(dev,"Can not read property codec-avdd-gpio\n");
 	}

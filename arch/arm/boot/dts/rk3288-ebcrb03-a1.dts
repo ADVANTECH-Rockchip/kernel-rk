@@ -425,6 +425,7 @@
 		compatible = "rt5660";
 		reg = <0x1c>;
 		codec-avdd-gpio = <&gpio3 GPIO_B2 GPIO_ACTIVE_LOW>;
+		codec-avdd-delay = <100>;
 		codec-micvdd-gpio = <&gpio3 GPIO_B3 GPIO_ACTIVE_HIGH>;
 		codec-spkvdd-gpio = <&gpio3 GPIO_B4 GPIO_ACTIVE_HIGH>;
 		amp-shutdown-gpio = <&gpio6 GPIO_A6 GPIO_ACTIVE_LOW>;

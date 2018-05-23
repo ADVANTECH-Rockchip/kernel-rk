@@ -563,7 +563,8 @@ static void rk3288_restart(char mode, const char *cmd)
 	dsb();
 
 #ifdef CONFIG_ARCH_ADVANTECH
-	pm_adv_reboot();
+	if(strcmp(cmd, "recovery"))
+		pm_adv_reboot();
 #endif
 
 	/* pll enter slow mode */

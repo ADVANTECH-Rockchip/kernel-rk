@@ -85,6 +85,9 @@ struct display_timing {
 	u32 *dsp_lut;
 	u32 *cabc_lut;
 	u32 *cabc_gamma_base;
+#ifdef CONFIG_ARCH_ADVANTECH
+	char *name;
+#endif
 #endif
 };
 

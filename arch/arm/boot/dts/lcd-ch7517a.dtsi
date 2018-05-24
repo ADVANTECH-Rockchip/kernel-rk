@@ -5,7 +5,7 @@
 
 / {
 	disp_timings: display-timings {
-		edp_1920x1200: 1920x1200 {
+		edp_1920x1200: edp-1920x1200 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <154000000>;
@@ -25,7 +25,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_1920x1080: 1920x1080 {
+		edp_1920x1080: edp-1920x1080 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <148000000>;
@@ -45,7 +45,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_1024x768: 1024x768 {
+		edp_1024x768: edp-1024x768 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <65000000>;

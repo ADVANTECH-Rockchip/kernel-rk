@@ -125,6 +125,33 @@ int rk_fb_set_prmry_screen(struct rk_screen *screen)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+struct rk_screen *rk_fb_get_screen_point(int prop)
+{
+	if (prop == PRMRY) {
+		if (unlikely(!prmry_screen)) {
+			pr_err(">>please init %s screen info in dtsi file<<\n",
+				(prop == PRMRY) ? "prmry" : "extend");
+			return NULL;
+		} else
+			return prmry_screen;
+	} else if (prop == EXTEND) {
+		if (unlikely(!extend_screen)) {
+			pr_err(">>please init %s screen info in dtsi file<<\n",
+			(	prop == PRMRY) ? "prmry" : "extend");
+			return NULL;
+		} else
+			return extend_screen;
+	} else {
+		if (unlikely(!rk_screen)) {
+			pr_err(">>please init screen info in dtsi file<<\n");
+			return NULL;
+		} else
+			return rk_screen;
+	}
+}
+#endif
+
 size_t get_fb_size_dual_lcd(u8 reserved_fb, struct rk_screen *screen)
 {
 	size_t size = 0;
@@ -140,7 +167,9 @@ size_t get_fb_size_dual_lcd(u8 reserved_fb, struct rk_screen *screen)
 	/* align as 64 bytes(16*4) in an odd number of times */
 	xres = ALIGN_64BYTE_ODD_TIMES(xres, ALIGN_PIXEL_64BYTE_RGB8888);
 	if (reserved_fb == ONE_FB_BUFFER)
-		size = (xres * yres << 2) << 1; /* two buffer */
+		size = xres * yres << 2;	/* one buffer */
+	else if (reserved_fb == TWO_FB_BUFFER)
+		size = (xres * yres << 2) << 1;	/* two buffer */
 	else
 #if defined(CONFIG_THREE_FB_BUFFER)
 		size = (xres * yres << 2) * 3;	/* three buffer */
@@ -196,14 +225,7 @@ static int rk_screen_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_ARCH_ADVANTECH
 	if(rk_fb_is_dual_lcd_mode()){
-		for_each_child_of_node(np, screen_np) {
-			of_property_read_u32(screen_np, "screen_prop", &screen_prop);
-			printk("%s screen_prop:%d",__func__,screen_prop);
-			if ((screen_prop != PRMRY) && (screen_prop != EXTEND)) {
-				dev_err(&pdev->dev, "unknow screen prop: %d\n",
-					screen_prop);
-				continue;
-			}
+		for_each_child_of_node(np, screen_np){
 			screen = devm_kzalloc(&pdev->dev,
 						 sizeof(struct rk_screen), GFP_KERNEL);
 			if (!screen) {
@@ -216,18 +238,20 @@ static int rk_screen_probe(struct platform_device *pdev)
 				dev_err(&pdev->dev, "kmalloc for rk_screen pwrlist_head fail!");
 				return  -ENOMEM;
 			}
+			of_property_read_u32(screen_np, "screen_prop", &screen_prop);
 			if (screen_prop == PRMRY)
 				prmry_screen = screen;
 			else if (screen_prop == EXTEND)
 				extend_screen = screen;
+			else
+				dev_err(&pdev->dev, "unknow screen prop: %d\n",screen_prop);
 			screen->prop = screen_prop;
-			of_property_read_u32(screen_np, "screen-type", &screen->screen_type);
 			screen->dev = &pdev->dev;
 			ret = rk_fb_prase_timing_dt(screen_np, screen);
 			pr_info("%s screen timing parse %s\n",
 				(screen_prop == PRMRY) ? "prmry" : "extend",
 				ret ? "failed" : "success");
-			if(!ret) {
+			if(rk_fb_get_lvds_prop() != screen_prop) {
 				ret = rk_disp_pwr_ctr_parse_dt_dual_lcd(screen_np, screen);
 				pr_info("%s screen power ctrl parse %s\n",
 					(screen_prop == PRMRY) ? "prmry" : "extend",
@@ -242,6 +266,9 @@ static int rk_screen_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "kmalloc for rk screen fail!");
 			return  -ENOMEM;
 		}
+#ifdef CONFIG_ARCH_ADVANTECH
+		rk_screen->prop = PRMRY;
+#endif
 		ret = rk_fb_prase_timing_dt(np, rk_screen);
 #ifdef CONFIG_ARCH_ADVANTECH
 	}

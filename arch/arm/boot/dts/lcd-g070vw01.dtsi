@@ -5,12 +5,12 @@
 
 / {
 	disp_timings: display-timings {
-		lvds_g070vw01: g070vw01 {
+		lvds_g070vw01: lvds-g070vw01 {
 			screen-type = <SCREEN_LVDS>;
 			lvds-format = <LVDS_8BIT_1>;
 			out-face    = <OUT_P888>;
 			color-mode = <COLOR_RGB>;
-			clock-frequency = <29500000>;
+			clock-frequency = <29700000>;
 			hactive = <800>;
 			vactive = <480>;
 			hback-porch = <96>;

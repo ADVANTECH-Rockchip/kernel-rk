@@ -5,7 +5,7 @@
 
 / {
 	disp_timings: display-timings {
-		edp_1920x1080: 1920x1080 {
+		edp_1920x1080: edp-1920x1080 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <148000000>;
@@ -25,7 +25,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_1280x720: 1280x720 {
+		edp_1280x720: edp-1280x720 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <74000000>;
@@ -45,7 +45,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_1024x768: 1024x768 {
+		edp_1024x768: edp-1024x768 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <65000000>;
@@ -65,7 +65,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_720x480: 720x480 {
+		edp_720x480: edp-720x480 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <26990000>;
@@ -85,7 +85,7 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
-		edp_640x480: 640x480 {
+		edp_640x480: edp-640x480 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
 			clock-frequency = <24975000>;

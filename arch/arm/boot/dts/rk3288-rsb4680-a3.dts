@@ -1,19 +1,23 @@
 /dts-v1/;
 
-#define ENABLE_4K_DISPLAY 1
 #define ENABLE_8CH_SPDIF 0
 
 #include "rk3288.dtsi"
 #include "lcd-g070vw01.dtsi"
 #include "lcd-g150xgel05.dtsi"
 #include "lcd-g215hvn01.dtsi"
+#include "lcd-lmt101dnmfdd.dtsi"
+#include "lcd-lmt150dngfdd.dtsi"
+#include "lcd-hdmi.dtsi"
 #include "lcd-ch7517a.dtsi"
-//#include "vtl_ts_sdk8846.dtsi"
 #include "rk3288-adv-sensor.dtsi"
 / {
 	model = "RSB-4680 a103-1";
 	aliases {
 		ethernet0 = &gmac;
+		lvds = &lvds;
+		edp = &edp;
+		lcdc2 = &lcdc2;
 	};
 
 	fiq-debugger {
@@ -205,6 +209,22 @@
 			gpio-key,wakeup;
 		};
 	};		
+
+	//dummy lcdc2,to fix prmry and extend dual lcdc issue
+	lcdc2: lcdc@ff950000 {
+		compatible = "rockchip,rk3288-lcdc";
+		rockchip,prop = <EXTEND>;
+		rockchip,pwr18 = <0>;
+		rockchip,iommu-enabled = <0>;
+		reg = <0xff930000 0x10000>;
+		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+		pinctrl-names = "default", "gpio";
+		pinctrl-0 = <&lcdc0_gpio>;
+		pinctrl-1 = <&lcdc0_gpio>;
+		status = "disabled";
+		clocks = <&clk_gates15 5>, <&dclk_lcdc0>, <&clk_gates15 6>, <&pd_vop0>;
+		clock-names = "aclk_lcdc", "dclk_lcdc", "hclk_lcdc", "pd_lcdc";
+	};
 };
 
 &gmac {
@@ -500,15 +520,6 @@
 
 &i2c3 {
 	status = "okay";
-    touchscreen: tsc2007@4b {
-            compatible = "ti,tsc2007";
-            reg = <0x4b>;
-            interrupt-parent = <&gpio0>;
-            interrupts = <17 2>;                          
-            gpios = <&gpio0 GPIO_C1 GPIO_ACTIVE_LOW>;
-            ti,x-plate-ohms = <180>;
-            linux,wakeup;
-    };
 };
 
 &i2c4 {
@@ -518,6 +529,15 @@
 		reg = <0x50>;
 		pagesize = <32>;
 	};
+    touchscreen: tsc2007@4b {
+        compatible = "ti,tsc2007";
+        reg = <0x4b>;
+        interrupt-parent = <&gpio0>;
+        interrupts = <6 2>;
+        gpios = <&gpio0 GPIO_A6 GPIO_ACTIVE_LOW>;
+        ti,x-plate-ohms = <180>;
+        linux,wakeup;
+    };
 };
 
 &i2c5 {
@@ -530,6 +550,10 @@
 };
 
 &disp_timings {
+	/* default display mode
+	 * only lvds or edp can be prmry screen
+	 * hdmi(720p) as extend screen
+	 */
 	native-mode = <&edp_1024x768>;
 };
 
@@ -537,17 +561,13 @@
 	display-timings = <&disp_timings>;
 	screen0 {
 		display-timings = <&disp_timings>;
-		screen_prop = <EXTEND>;//PRMRY
-		/*native-mode = <DEFAULT_MODE>;*/
-		screen-type = <SCREEN_EDP>;
+		screen_prop = <PRMRY>;//PRMRY
 		power_ctr {
 		};
 	};
 	screen1 {
 		display-timings = <&disp_timings>;
-		screen_prop = <PRMRY>;//EXTEND
-		/*native-mode = <DEFAULT_MODE>;*/
-		screen-type = <SCREEN_LVDS>;
+		screen_prop = <EXTEND>;//EXTEND
 		power_ctr {
 		};
 	};
@@ -555,7 +575,7 @@
 
 &edp {
     status = "okay";
-    prop = <EXTEND>;
+    //prop = <EXTEND>;
     lane_count = <2>;
     hotplg_gpio = <&gpio7 GPIO_B3 GPIO_ACTIVE_HIGH>;
     rockchip,edp-audio-enable = <0>;
@@ -563,22 +583,8 @@
 
 &lvds{
     status = "okay";
-    prop = <PRMRY>;
-};
-
-/*lcdc0 as PRMRY(LCD),lcdc1 as EXTEND(HDMI)*/
-#if ENABLE_4K_DISPLAY
-&lcdc1 {
-#else
-&lcdc0 {
-#endif
-	status = "okay";
-	pinctrl-names = "default", "gpio";
-	pinctrl-0 = <&lcdc0_gpio>;
-	pinctrl-1 = <&lcdc0_gpio>;
-	rockchip,mirror = <NO_MIRROR>;
-	rockchip,cabc_mode = <0>;
-	power_ctr: power_ctr {
+    //prop = <EXTEND>;
+    power_ctr {
 		rockchip,debug = <0>;
 		lcd_en:lcd_en {
 			rockchip,power_type = <GPIO>;
@@ -588,22 +594,23 @@
 	};
 };
 
-#if ENABLE_4K_DISPLAY
 &lcdc0 {
-#else
+	status = "disabled";
+	rockchip,mirror = <NO_MIRROR>;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&lcdc0_gpio>;
+	pinctrl-1 = <&lcdc0_gpio>;
+};
+
 &lcdc1 {
-#endif
 	status = "okay";
 	rockchip,mirror = <NO_MIRROR>;
+	rockchip,cabc_mode = <0>;
 };
 
 &hdmi {
 	status = "disabled";
-#if ENABLE_4K_DISPLAY
 	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC0>;
-#else
-	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC1>;
-#endif
 };
 
 &spdif {

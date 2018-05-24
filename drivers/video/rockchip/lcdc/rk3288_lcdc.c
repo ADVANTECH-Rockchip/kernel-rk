@@ -1427,6 +1427,7 @@ static int rk3288_load_screen(struct rk_lcdc_driver *dev_drv, bool initscreen)
 				ret = -1;
 			}
 		}
+		lcdc_cfg_done(lcdc_dev);
 	}
 	spin_unlock(&lcdc_dev->reg_lock);
 	rk3288_lcdc_set_dclk(dev_drv, 1);

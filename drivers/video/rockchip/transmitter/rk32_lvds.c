@@ -59,7 +59,10 @@ static int rk32_lvds_en(void)
 	u32 h_bp = 0;
 	u32 val = 0;
 
-	rk_fb_get_prmry_screen(screen);
+	if(rk_fb_is_dual_lcd_mode())
+		rk_fb_get_screen(screen, lvds->prop);
+	else
+		rk_fb_get_prmry_screen(screen);
 
 	/* enable clk */
 	rk32_lvds_clk_enable(lvds);
@@ -80,7 +83,7 @@ static int rk32_lvds_en(void)
 	        (screen->type == SCREEN_LVDS_10BIT))
 		val |= LVDS_CH0_EN;
 	else if (screen->type == SCREEN_RGB)
-		val = LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
+		val |= LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
 
 	h_bp = screen->mode.hsync_len + screen->mode.left_margin;
 	if (h_bp & 0x01)
@@ -141,6 +144,7 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 	struct resource *res;
     int prop;
 	struct device_node *np = pdev->dev.of_node;
+	struct rk_screen *screen;
 
 	if (!np) {
 		dev_err(&pdev->dev, "Missing device tree node.\n");
@@ -155,11 +159,13 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 	lvds->dev = &pdev->dev;
 #ifdef CONFIG_ARCH_ADVANTECH
 	if(rk_fb_is_dual_lcd_mode()){
-		of_property_read_u32(np, "prop", &prop);
-		pr_info("Use LVDS as %s screen\n", (prop == PRMRY) ? "prmry" : "extend");
+		//of_property_read_u32(np, "prop", &prop);
+		prop = rk_fb_get_lvds_prop();
+		if(prop)
+			pr_info("Use LVDS as %s screen\n", (prop == PRMRY) ? "prmry" : "extend");
 		rk_fb_get_screen(&lvds->screen, prop);
 		lvds->prop = prop;
-	} else
+	}else
 #endif
 		rk_fb_get_prmry_screen(&lvds->screen);
 
@@ -197,11 +203,14 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 	rk32_lvds = lvds;
 #ifdef CONFIG_ARCH_ADVANTECH
 	if(rk_fb_is_dual_lcd_mode()) {
-		rk32_lvds_clk_enable(lvds);
-		rk_fb_trsm_ops_register(&trsm_lvds_ops, prop);
+		screen = rk_fb_get_screen_point(lvds->prop);
+		if(screen)
+			rk_disp_pwr_ctr_parse_dt_dual_lcd(np, screen);
+		rk_fb_trsm_ops_register(&trsm_lvds_ops, lvds->prop);
 	} else
 #endif
 		rk_fb_trsm_ops_register(&trsm_lvds_ops,SCREEN_LVDS);
+
 	dev_info(&pdev->dev, "rk32 lvds driver probe success\n");
 
 	return 0;

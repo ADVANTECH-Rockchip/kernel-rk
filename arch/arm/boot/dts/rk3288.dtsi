@@ -10,9 +10,6 @@
 #include "rk3288-pinctrl.dtsi"
 #include "rk3288-clocks.dtsi"
 
-#ifndef ENABLE_4K_DISPLAY
-#define ENABLE_4K_DISPLAY 1
-#endif
 #ifndef ENABLE_8CH_SPDIF
 #define ENABLE_8CH_SPDIF 0
 #endif
@@ -825,59 +822,32 @@
 		status = "disabled";
 	};
 
-#if ENABLE_4K_DISPLAY
-	lcdc1: lcdc@ff940000 {
-#else
 	lcdc0: lcdc@ff930000 {
-#endif
 		compatible = "rockchip,rk3288-lcdc";
 		rockchip,prop = <PRMRY>;
 		rockchip,pwr18 = <0>;
 		rockchip,iommu-enabled = <0>;
-#if ENABLE_4K_DISPLAY
-		reg = <0xff940000 0x10000>;
-		interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
-#else
 		reg = <0xff930000 0x10000>;
 		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
-#endif
 		pinctrl-names = "default", "gpio";
 		pinctrl-0 = <&lcdc0_lcdc>;
 		pinctrl-1 = <&lcdc0_gpio>;
 		status = "disabled";
-#if ENABLE_4K_DISPLAY
-		clocks = <&clk_gates15 7>, <&dclk_lcdc1>, <&clk_gates15 8>, <&pd_vop1>;
-#else
 		clocks = <&clk_gates15 5>, <&dclk_lcdc0>, <&clk_gates15 6>,
 			 <&pd_vop0>;
-#endif
 		clock-names = "aclk_lcdc", "dclk_lcdc", "hclk_lcdc", "pd_lcdc";
 	};
 
-#if ENABLE_4K_DISPLAY
-	lcdc0: lcdc@ff930000 {
-#else
 	lcdc1: lcdc@ff940000 {
-#endif
 		compatible = "rockchip,rk3288-lcdc";
 		rockchip,prop = <EXTEND>;
 		rockchip,pwr18 = <0>;
 		rockchip,iommu-enabled = <0>;
-#if ENABLE_4K_DISPLAY
-		reg = <0xff930000 0x10000>;
-		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
-#else
 		reg = <0xff940000 0x10000>;
 		interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
-#endif
-
 		status = "disabled";
-#if ENABLE_4K_DISPLAY
-		clocks = <&clk_gates15 5>, <&dclk_lcdc0>, <&clk_gates15 6>, <&pd_vop0>;
-#else
 		clocks = <&clk_gates15 7>, <&dclk_lcdc1>, <&clk_gates15 8>,
 			 <&pd_vop1>;
-#endif
 		clock-names = "aclk_lcdc", "dclk_lcdc", "hclk_lcdc", "pd_lcdc";
 	};
 

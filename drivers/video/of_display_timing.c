@@ -146,6 +146,13 @@ static struct display_timing *of_get_display_timing(struct device_node *np)
 							 dt->cabc_gamma_base,
 							 length >> 2);
 	}
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	length = strlen(np->name);
+	dt->name= kzalloc(length+1, GFP_KERNEL);
+	if (dt->name)
+		memcpy(dt->name,np->name,length);
+#endif
 #endif
 
 	if (ret) {

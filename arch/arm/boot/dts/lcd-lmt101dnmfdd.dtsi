@@ -5,20 +5,20 @@
 
 / {
 	disp_timings: display-timings {
-		lvds_lmt101dngfdd: lmt101dngfdd {
+		lvds_lmt101dngfdd: lvds-lmt101dngfdd {
 			screen-type = <SCREEN_LVDS>;
 			lvds-format = <LVDS_6BIT>;
 			out-face    = <OUT_P666>;
 			color-mode = <COLOR_RGB>;
-			clock-frequency = <65000000>;
+			clock-frequency = <65240000>;
 			hactive = <1024>;
 			vactive = <600>;
-			hback-porch = <220>;
+			hback-porch = <270>;
 			hfront-porch = <40>;
-			vback-porch = <20>;
-			vfront-porch = <6>;
+			vback-porch = <130>;
+			vfront-porch = <20>;
 			hsync-len = <60>;
-			vsync-len = <9>;
+			vsync-len = <30>;
 			hsync-active = <0>;
 			vsync-active = <0>;
 			de-active = <0>;

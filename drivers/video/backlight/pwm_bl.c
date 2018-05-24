@@ -205,6 +205,10 @@ static int pwm_backlight_parse_dt(struct device *dev,
 }
 #endif
 
+#ifdef CONFIG_ARCH_ADVANTECH
+extern u32 rk_fb_get_lvds_prop(void);
+#endif
+
 static int pwm_backlight_probe(struct platform_device *pdev)
 {
 	struct platform_pwm_backlight_data *data = pdev->dev.platform_data;
@@ -213,6 +217,13 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	struct backlight_device *bl;
 	struct pwm_bl_data *pb;
 	int ret;
+	
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(!rk_fb_get_lvds_prop()) {
+		dev_err(&pdev->dev, "not lvds display mode,exit!\n");
+		return -EINVAL;
+	}
+#endif
 
 	if (!data) {
 		ret = pwm_backlight_parse_dt(&pdev->dev, &defdata);

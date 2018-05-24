@@ -1796,25 +1796,20 @@ static int rk32_edp_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "invalid hotplg_gpio gpio%d\n", edp->hotplg_gpio);
 
 	if(rk_fb_is_dual_lcd_mode()){
-		of_property_read_u32(np, "prop", &prop);
-		pr_info("Use EDP as %s screen\n", (prop == PRMRY) ? "prmry":"extend");
+		//of_property_read_u32(np, "prop", &prop);
+		prop = rk_fb_get_edp_prop();
+		if(prop)
+			pr_info("Use EDP as %s screen\n", (prop == PRMRY) ? "prmry":"extend");
 		edp->prop = prop;
-
 		rk_fb_get_screen(&edp->screen, edp->prop);
-		if (edp->screen.type != SCREEN_EDP) {
-			dev_err(&pdev->dev, "screen is not edp,screen type = %d!\n",edp->screen.type);
-			return -EINVAL;
-		}
-	} else {
+	}else
 #endif
 		rk_fb_get_prmry_screen(&edp->screen);
-		if (edp->screen.type != SCREEN_EDP) {
-			dev_err(&pdev->dev, "screen is not edp!\n");
-			return -EINVAL;
-		}
-#ifdef CONFIG_ARCH_ADVANTECH
+	if (edp->screen.type != SCREEN_EDP) {
+		dev_err(&pdev->dev, "screen is not edp!\n");
+		return -EINVAL;
 	}
-#endif
+
 	platform_set_drvdata(pdev, edp);
 	dev_set_name(edp->dev, "rk32-edp");
 

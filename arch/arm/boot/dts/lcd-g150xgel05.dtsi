@@ -5,7 +5,7 @@
 
 / {
 	disp_timings: display-timings {
-		lvds_g150xgel05: g150xgel05 {
+		lvds_g150xgel05: lvds-g150xgel05 {
 			screen-type = <SCREEN_LVDS>;
 			lvds-format = <LVDS_8BIT_1>;
 			out-face    = <OUT_P888>;

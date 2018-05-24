@@ -153,5 +153,8 @@ extern size_t get_rotate_fb_size(struct rk_screen *screen);
 extern size_t get_fb_size(u8 reserved_fb);
 extern void set_tv_info(struct rk_screen *screen);
 extern void set_hdmi_info(struct rk_screen *screen);
+#ifdef CONFIG_ARCH_ADVANTECH
+extern struct rk_screen *rk_fb_get_screen_point(int prop);
+#endif
 
 #endif

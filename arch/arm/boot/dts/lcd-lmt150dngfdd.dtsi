@@ -5,7 +5,7 @@
 
 / {
 	disp_timings: display-timings {
-		lvds_lmt150dngfdd: lmt150dngfdd {
+		lvds_lmt150dngfdd: lvds-lmt150dngfdd {
 			screen-type = <SCREEN_LVDS>;
 			lvds-format = <LVDS_6BIT>;
 			out-face    = <OUT_P666>;

@@ -1877,8 +1877,10 @@ static int rk32_edp_probe(struct platform_device *pdev)
 		return ret;
 	}
 	disable_irq_nosync(edp->irq);
+#ifndef CONFIG_ARCH_ADVANTECH
 	if (!support_uboot_display())
 		rk32_edp_clk_disable(edp);
+#endif
 	rk32_edp = edp;
 #ifdef CONFIG_ARCH_ADVANTECH
 	if(rk_fb_is_dual_lcd_mode())

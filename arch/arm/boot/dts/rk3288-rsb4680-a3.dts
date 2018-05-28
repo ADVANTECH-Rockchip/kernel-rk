@@ -6,6 +6,7 @@
 #include "lcd-g070vw01.dtsi"
 #include "lcd-g150xgel05.dtsi"
 #include "lcd-g215hvn01.dtsi"
+#include "lcd-p460hvn02.1.dtsi"
 #include "lcd-lmt101dnmfdd.dtsi"
 #include "lcd-lmt150dngfdd.dtsi"
 #include "lcd-hdmi.dtsi"

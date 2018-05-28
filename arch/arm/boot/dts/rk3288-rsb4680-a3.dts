@@ -503,6 +503,7 @@
 		compatible = "rt5660";
 		reg = <0x1c>;
 		codec-avdd-gpio = <&gpio3 GPIO_B2 GPIO_ACTIVE_LOW>;
+		codec-avdd-delay = <100>;
 		codec-micvdd-gpio = <&gpio3 GPIO_B3 GPIO_ACTIVE_HIGH>;
 		codec-spkvdd-gpio = <&gpio3 GPIO_B4 GPIO_ACTIVE_HIGH>;
 		amp-shutdown-gpio = <&gpio3 GPIO_B5 GPIO_ACTIVE_LOW>;
@@ -671,13 +672,13 @@
 		200000 1150000
 		300000 1150000
 		400000 1150000
-		533000 1150000
+		528000 1150000
 		>;
 
 	freq-table = <
 		/*status		freq(KHz)*/
 		SYS_STATUS_NORMAL	400000
-		SYS_STATUS_SUSPEND	 324000
+		SYS_STATUS_SUSPEND	 300000
 		/*SYS_STATUS_VIDEO_1080P  324000
 		SYS_STATUS_VIDEO_4K     528000
 		SYS_STATUS_PERFORMANCE  528000

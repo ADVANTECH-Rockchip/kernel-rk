@@ -556,7 +556,7 @@
 	 * only lvds or edp can be prmry screen
 	 * hdmi(720p) as extend screen
 	 */
-	native-mode = <&edp_1024x768>;
+	native-mode = <&edp_1920x1080>;
 };
 
 &rk_screen {

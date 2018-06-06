@@ -550,6 +550,10 @@
 	status = "disabled";
 };
 
+&watchdog {
+	status = "okay";
+};
+
 &clk_core_dvfs_table {
 	support-pvtm = <1>;
 	target-temp = <90>;

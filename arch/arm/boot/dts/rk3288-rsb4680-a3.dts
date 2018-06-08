@@ -557,6 +557,9 @@
 	 * hdmi(720p) as extend screen
 	 */
 	native-mode = <&edp_1920x1080>;
+	use-dts-screen = <0>;
+	prmry-screen = <&hdmi_1080p>;
+	extend-screen = <&lvds_lmt101dngfdd>;
 };
 
 &rk_screen {
@@ -612,6 +615,7 @@
 
 &hdmi {
 	status = "disabled";
+	rockchip,defaultmode = <16>;//HDMI_1920X1080P_60HZ
 	rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC0>;
 };
 

@@ -39,7 +39,7 @@ static int version = KERNEL_VERSION(0,1,0xd);
 module_param(version, int, S_IRUGO);
 
 
-static int debug = 1;
+static int debug = 0;
 module_param(debug, int, S_IRUGO|S_IWUSR);
 
 #define CAMMODULE_NAME    "rk_cam_sensor"

@@ -1242,7 +1242,7 @@ static int rk_camera_mclk_ctrl(int cif_idx, int on, int clk_rate)
     int err = 0,cif;    
     struct rk_cif_clk *clk;
 
-	printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
+	debug_printk( "/$$$$$$$$$$$$$$$$$$$$$$//n Here I am: %s:%i-------%s()\n", __FILE__, __LINE__,__FUNCTION__);
 
 
     cif = cif_idx - RK29_CAM_PLATFORM_DEV_ID;

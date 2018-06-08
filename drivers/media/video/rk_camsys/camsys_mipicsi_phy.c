@@ -124,7 +124,7 @@ int camsys_mipiphy_probe_cb(struct platform_device *pdev, camsys_dev_t *camsys_d
         camsys_err("get property(rockchip,isp,mipiphy) failed!");
         goto fail;
     } else {
-        camsys_trace(1, "%s have %d mipi phy\n",dev_name(&pdev->dev),mipiphy_cnt);
+        camsys_trace(2, "%s have %d mipi phy\n",dev_name(&pdev->dev),mipiphy_cnt);
     }
     
     mipiphy = kzalloc(sizeof(camsys_phyinfo_t)*mipiphy_cnt,GFP_KERNEL);

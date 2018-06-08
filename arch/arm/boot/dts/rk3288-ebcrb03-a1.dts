@@ -556,7 +556,7 @@
 
 &clk_core_dvfs_table {
 	support-pvtm = <1>;
-	target-temp = <110>;
+	target-temp = <100>;
 	min_temp_limit = <816000>;
 	pvtm-operating-points = <
         /* KHz    uV    margin(uV)*/

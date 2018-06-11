@@ -598,46 +598,46 @@ const struct clk_ops clkops_rate_3288_usb480m = {
 };
 
 static int caculate_clk_best_rate(unsigned long parent_rate,unsigned long target_rate){
-	   int init_factor  = parent_rate/target_rate;
-	   int rate = parent_rate/init_factor;
-	   if(init_factor > 1){
+   int init_factor  = parent_rate/target_rate;
+   int rate = parent_rate/init_factor;
+   if(init_factor > 1){
 	   	 if(abs(rate - target_rate) > abs(parent_rate/(init_factor-1) - target_rate)){
 	   	 	  
 	   	 	   rate = parent_rate/(init_factor-1);
 	   	 }
 	   	 if(abs(rate - target_rate) > abs(parent_rate/(init_factor+1) - target_rate)){
-	   	 	  
 	   	 	   rate = parent_rate/(init_factor+1);
 	     }
      }
      printk("caculate rate = %d\n",rate);
      return rate + 1;
-	}
+}
 
 static bool is_clk_parent(struct clk_hw *hw,struct clk *parent_clk){
 	struct clk *clk = hw->clk;
 	int i;
 	if (!clk->parents)
 		return false;
-  for (i = 0; i < clk->num_parents; i++) {
+	for (i = 0; i < clk->num_parents; i++) {
 	    if(parent_clk == clk->parents[i])
 	    	return true;	
-		}	
-		return false;
-	}
+	}	
+	return false;
+}
 
 static bool is_clk_parent_no_hw(struct clk *clk,struct clk *parent_clk){
 
 	int i;
-	if (clk == NULL)return false;
+	if (clk == NULL)
+		return false;
 	if (!clk->parents)
 		return false;
 	for (i = 0; i < clk->num_parents; i++) {
 	    if(parent_clk == clk->parents[i])
 	    	return true;	
-		}	
-		return false;
-	}
+	}	
+	return false;
+}
 
 #define RK3288_LIMIT_PLL_VIO0 (600*MHZ)
 
@@ -663,17 +663,16 @@ static long clk_3288_dclk_lcdc0_determine_rate(struct clk_hw *hw, unsigned long 
 		*best_parent_rate = gpll_rate;
 		return best;
     }else if (clk_get_parent(dclk_lcdc1) != cpll && is_clk_parent(hw , cpll)) {
-
-			*best_parent_p = cpll;
-			div = RK3288_LIMIT_PLL_VIO0/rate;
-			prate = div * rate;
-			*best_parent_rate = clk_round_rate(cpll, prate);
-			best = (*best_parent_rate) / div;
-			if(!__clk_is_enabled(cpll)){
-			  clk_prepare(cpll);
-			  clk_enable(cpll);	
-			}
-			return best;
+		*best_parent_p = cpll;
+		div = RK3288_LIMIT_PLL_VIO0/rate;
+		prate = div * rate;
+		*best_parent_rate = clk_round_rate(cpll, prate);
+		best = (*best_parent_rate) / div;
+		if(!__clk_is_enabled(cpll)){
+		  clk_prepare(cpll);
+		  clk_enable(cpll);	
+		}
+		return best;
 	}
 	for (i = 0; i < clk->num_parents; i++) {
 	    parent_rate[i] = __clk_get_rate(clk->parents[i]);
@@ -696,7 +695,7 @@ static long clk_3288_dclk_lcdc0_determine_rate(struct clk_hw *hw, unsigned long 
 	  clk_prepare(*best_parent_p);
 	  clk_enable(*best_parent_p);	
 	}
-return best;
+	return best;
 }
 
 /*
@@ -816,19 +815,18 @@ static long clk_3288_dclk_lcdc1_determine_rate(struct clk_hw *hw, unsigned long 
 		best = rate;
 		*best_parent_rate = gpll_rate;
 		return best;
-  }else if (clk_get_parent(dclk_lcdc0) != cpll && is_clk_parent(hw , cpll)) {
-
-			*best_parent_p = cpll;
-			div = RK3288_LIMIT_PLL_VIO1 / rate;
-			prate = div * rate;
-			*best_parent_rate = clk_round_rate(cpll, prate);
-			best = (*best_parent_rate) / div;
-			if(!__clk_is_enabled(cpll)){
-			  clk_prepare(cpll);
-			  clk_enable(cpll);	
-			}
-		  printk("prate = %ld,parent rate = %ld\n",prate,*best_parent_rate);
-			return best;
+	}else if (clk_get_parent(dclk_lcdc0) != cpll && is_clk_parent(hw , cpll)) {
+		*best_parent_p = cpll;
+		div = RK3288_LIMIT_PLL_VIO1 / rate;
+		prate = div * rate;
+		*best_parent_rate = clk_round_rate(cpll, prate);
+		best = (*best_parent_rate) / div;
+		if(!__clk_is_enabled(cpll)){
+			clk_prepare(cpll);
+			clk_enable(cpll);	
+		}
+		printk("prate = %ld,parent rate = %ld\n",prate,*best_parent_rate);
+		return best;
 	}
 	for (i = 0; i < clk->num_parents; i++) {
 	    parent_rate[i] = __clk_get_rate(clk->parents[i]);
@@ -850,7 +848,7 @@ static long clk_3288_dclk_lcdc1_determine_rate(struct clk_hw *hw, unsigned long 
 	  clk_prepare(*best_parent_p);
 	  clk_enable(*best_parent_p);	
 	}
-  return best;
+	return best;
 }
 /*
 static long clk_3288_dclk_lcdc1_determine_rate(struct clk_hw *hw, unsigned long rate,

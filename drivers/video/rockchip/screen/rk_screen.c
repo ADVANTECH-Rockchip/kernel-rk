@@ -268,6 +268,14 @@ static int rk_screen_probe(struct platform_device *pdev)
 		}
 #ifdef CONFIG_ARCH_ADVANTECH
 		rk_screen->prop = PRMRY;
+		if(rk_fb_get_lvds_prop()) {
+			rk_screen->pwrlist_head = devm_kzalloc(&pdev->dev,
+								sizeof(struct list_head), GFP_KERNEL);
+			if (!rk_screen->pwrlist_head) {
+				dev_err(&pdev->dev, "kmalloc for rk_screen pwrlist_head fail!");
+				return  -ENOMEM;
+			}
+		}
 #endif
 		ret = rk_fb_prase_timing_dt(np, rk_screen);
 #ifdef CONFIG_ARCH_ADVANTECH

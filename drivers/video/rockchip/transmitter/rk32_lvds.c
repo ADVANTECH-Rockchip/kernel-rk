@@ -168,7 +168,6 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 	}else
 #endif
 		rk_fb_get_prmry_screen(&lvds->screen);
-
 	if ((lvds->screen.type != SCREEN_RGB) && 
 		(lvds->screen.type != SCREEN_LVDS) &&
 		(lvds->screen.type != SCREEN_DUAL_LVDS) &&
@@ -202,15 +201,14 @@ static int rk32_lvds_probe(struct platform_device *pdev)
 
 	rk32_lvds = lvds;
 #ifdef CONFIG_ARCH_ADVANTECH
-	if(rk_fb_is_dual_lcd_mode()) {
-		screen = rk_fb_get_screen_point(lvds->prop);
-		if(screen)
-			rk_disp_pwr_ctr_parse_dt_dual_lcd(np, screen);
+	screen = rk_fb_get_screen_point(lvds->prop);
+	if(screen)
+		rk_disp_pwr_ctr_parse_dt_dual_lcd(np, screen);
+	if(rk_fb_is_dual_lcd_mode())
 		rk_fb_trsm_ops_register(&trsm_lvds_ops, lvds->prop);
-	} else
+	else
 #endif
 		rk_fb_trsm_ops_register(&trsm_lvds_ops,SCREEN_LVDS);
-
 	dev_info(&pdev->dev, "rk32 lvds driver probe success\n");
 
 	return 0;

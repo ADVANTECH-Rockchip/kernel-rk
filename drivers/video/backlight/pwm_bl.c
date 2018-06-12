@@ -22,6 +22,9 @@
 #include <linux/pwm.h>
 #include <linux/pwm_backlight.h>
 #include <linux/slab.h>
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/rk_fb.h>
+#endif
 
 struct pwm_bl_data {
 	struct pwm_device	*pwm;
@@ -331,6 +334,9 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	}
 
 	bl->props.brightness = data->dft_brightness;
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(PRMRY == rk_fb_get_lvds_prop())
+#endif
 	backlight_update_status(bl);
 
 	platform_set_drvdata(pdev, bl);

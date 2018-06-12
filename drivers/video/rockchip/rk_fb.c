@@ -517,16 +517,15 @@ int rk_disp_pwr_enable(struct rk_lcdc_driver *dev_drv)
 	int count = 10;
 
 #ifdef CONFIG_ARCH_ADVANTECH
-	if(rk_fb_is_dual_lcd_mode()){
-		if (!dev_drv->cur_screen->pwrlist_head) {
-			pr_info("error:  %s, lcdc%d screen pwrlist null\n",
-				__func__, dev_drv->id);
-			return 0;
-		}
-		tmp = dev_drv->cur_screen->pwrlist_head;
-	} else
+	if (!dev_drv->cur_screen->pwrlist_head) {
+		pr_info("error:  %s, lcdc%d screen pwrlist null\n",
+			__func__, dev_drv->id);
+		return 0;
+	}
+	tmp = dev_drv->cur_screen->pwrlist_head;
+#else
+	tmp = &dev_drv->pwrlist_head;
 #endif
-		tmp = &dev_drv->pwrlist_head;
 
 	if (list_empty(tmp))
 		return 0;
@@ -573,16 +572,15 @@ int rk_disp_pwr_disable(struct rk_lcdc_driver *dev_drv)
 	int count = 10;
 
 #ifdef CONFIG_ARCH_ADVANTECH
-	if(rk_fb_is_dual_lcd_mode()){
-		if (!dev_drv->cur_screen->pwrlist_head) {
-			pr_info("error:  %s, lcdc%d screen pwrlist null\n",
-				__func__, dev_drv->id);
-			return 0;
-		}
-		tmp = dev_drv->cur_screen->pwrlist_head;
-	} else
+	if (!dev_drv->cur_screen->pwrlist_head) {
+		pr_info("error:  %s, lcdc%d screen pwrlist null\n",
+			__func__, dev_drv->id);
+		return 0;
+	}
+	tmp = dev_drv->cur_screen->pwrlist_head;
+#else
+	tmp = &dev_drv->pwrlist_head;
 #endif
-		tmp = &dev_drv->pwrlist_head;
 
 	if (list_empty(tmp))
 		return 0;
@@ -662,8 +660,8 @@ int rk_fb_video_mode_from_timing(const struct display_timing *dt,
 }
 
 #ifdef CONFIG_ARCH_ADVANTECH
-static char dual_lcd_prmry_screen[30]={0};
-static char dual_lcd_extend_screen[30]={0};
+static char lcd_prmry_screen[30]={0};
+static char lcd_extend_screen[30]={0};
 static u32 dual_lcd_mode = 0;
 
 u32 rk_fb_is_dual_lcd_mode(void)
@@ -673,9 +671,9 @@ u32 rk_fb_is_dual_lcd_mode(void)
 
 u32 rk_fb_get_lvds_prop(void)
 {
-	if(!memcmp(dual_lcd_prmry_screen,"lvds",4))
+	if(!memcmp(lcd_prmry_screen,"lvds",4))
 		return PRMRY;
-	else if(!memcmp(dual_lcd_extend_screen,"lvds",4))
+	else if(!memcmp(lcd_extend_screen,"lvds",4))
 		return EXTEND;
 	else
 		return 0;
@@ -683,9 +681,9 @@ u32 rk_fb_get_lvds_prop(void)
 
 u32 rk_fb_get_edp_prop(void)
 {
-	if(!memcmp(dual_lcd_prmry_screen,"edp",3))
+	if(!memcmp(lcd_prmry_screen,"edp",3))
 		return PRMRY;
-	else if(!memcmp(dual_lcd_extend_screen,"edp",3))
+	else if(!memcmp(lcd_extend_screen,"edp",3))
 		return EXTEND;
 	else
 		return 0;
@@ -709,8 +707,8 @@ static int __init setup_prmry_screen(char *buf)
 {
 	u32 len;
 	
-	len = (strlen(buf) > (sizeof(dual_lcd_prmry_screen)-1)) ? (sizeof(dual_lcd_prmry_screen)-1) : strlen(buf);
-	memcpy(dual_lcd_prmry_screen,buf,len);
+	len = (strlen(buf) > (sizeof(lcd_prmry_screen)-1)) ? (sizeof(lcd_prmry_screen)-1) : strlen(buf);
+	memcpy(lcd_prmry_screen,buf,len);
 	
 	return 0;
 }
@@ -719,8 +717,8 @@ static int __init setup_extend_screen(char *buf)
 {
 	u32 len;
 	
-	len = (strlen(buf) > (sizeof(dual_lcd_extend_screen)-1)) ? (sizeof(dual_lcd_extend_screen)-1) : strlen(buf);
-	memcpy(dual_lcd_extend_screen,buf,len);
+	len = (strlen(buf) > (sizeof(lcd_extend_screen)-1)) ? (sizeof(lcd_extend_screen)-1) : strlen(buf);
+	memcpy(lcd_extend_screen,buf,len);
 	
 	return 0;
 }
@@ -746,20 +744,20 @@ int rk_fb_prase_timing_dt(struct device_node *np, struct rk_screen *screen)
 
 #ifdef CONFIG_ARCH_ADVANTECH
 	for(i=0;i<disp_timing->num_timings;i++) {
-		if((strlen(disp_timing->timings[i]->name) != strlen(dual_lcd_prmry_screen)) && 
-			(strlen(disp_timing->timings[i]->name) != strlen(dual_lcd_extend_screen)))
+		if((strlen(disp_timing->timings[i]->name) != strlen(lcd_prmry_screen)) && 
+			(strlen(disp_timing->timings[i]->name) != strlen(lcd_extend_screen)))
 			continue;
 		if((screen->prop == PRMRY) && 
-			!memcmp(disp_timing->timings[i]->name,dual_lcd_prmry_screen,strlen(dual_lcd_prmry_screen))){
+			!memcmp(disp_timing->timings[i]->name,lcd_prmry_screen,strlen(lcd_prmry_screen))){
 		    disp_timing->native_mode = i;
 			pr_info("%s: Using timing #%d\(%s\) as default prmry screen from uboot params\n",
-					of_node_full_name(np), disp_timing->native_mode + 1,dual_lcd_prmry_screen);
+					of_node_full_name(np), disp_timing->native_mode + 1,lcd_prmry_screen);
 			break;
 		} else if((screen->prop == EXTEND) && 
-			!memcmp(disp_timing->timings[i]->name,dual_lcd_extend_screen,strlen(dual_lcd_extend_screen))){
+			!memcmp(disp_timing->timings[i]->name,lcd_extend_screen,strlen(lcd_extend_screen))){
 		    disp_timing->native_mode = i;
 			pr_info("%s: Using timing #%d\(%s\) as default extend screen from uboot params\n",
-					of_node_full_name(np), disp_timing->native_mode + 1,dual_lcd_extend_screen);
+					of_node_full_name(np), disp_timing->native_mode + 1,lcd_extend_screen);
 			break;
 		}
 	}
@@ -3228,7 +3226,7 @@ static int rk_fb_blank(int blank_mode, struct fb_info *info)
 {
 	struct rk_fb_par *fb_par = (struct rk_fb_par *)info->par;
 	struct rk_lcdc_driver *dev_drv = fb_par->lcdc_drv;
-	struct rk_lcdc_driver *ext_dev_drv = rk_get_extend_lcdc_drv();
+	//struct rk_lcdc_driver *ext_dev_drv = rk_get_extend_lcdc_drv();
 	struct fb_fix_screeninfo *fix = &info->fix;
 	int win_id;
 #if defined(CONFIG_RK_HDMI)
@@ -3247,7 +3245,7 @@ static int rk_fb_blank(int blank_mode, struct fb_info *info)
 #endif
 	{
 		dev_drv->ops->blank(dev_drv, win_id, blank_mode);
-		dev_drv->ops->blank(ext_dev_drv, win_id, blank_mode);
+		//dev_drv->ops->blank(ext_dev_drv, win_id, blank_mode);
 	}
 	mutex_unlock(&dev_drv->switch_screen);
 	return 0;
@@ -4553,7 +4551,7 @@ int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 
 		rk_fb_alloc_buffer(main_fbi);	/* only alloc memory for main fb */
 		dev_drv->uboot_logo = support_uboot_display();
-#ifdef CONFIG_ARCH_ADVANTECH
+#ifdef CONFIG_ARCH_ADVANTECH_UBOOT_LOGO
 		if(rk_fb_is_dual_lcd_mode())
 			dev_drv->uboot_logo = 1;
 #endif
@@ -4693,11 +4691,12 @@ int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 				freed_index = 0;
 			}
 		}
-#ifdef CONFIG_ARCH_ADVANTECH
+#ifdef CONFIG_ARCH_ADVANTECH_UBOOT_LOGO
 		if(rk_fb_is_dual_lcd_mode())
 			dev_drv->uboot_logo = support_uboot_display();
 #endif
 
+#ifndef CONFIG_ARCH_ADVANTECH
 #if defined(CONFIG_LOGO)
 		main_fbi->fbops->fb_set_par(main_fbi);
 #if  defined(CONFIG_LOGO_LINUX_BMP)
@@ -4713,9 +4712,9 @@ int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 #endif
 		main_fbi->fbops->fb_pan_display(&main_fbi->var, main_fbi);
 #endif
+#endif
 	} else {
-		struct fb_info *extend_fbi;
-		extend_fbi = rk_fb->fb[dev_drv->fb_index_base];
+		struct fb_info *extend_fbi = rk_fb->fb[dev_drv->fb_index_base];
 #ifdef CONFIG_ARCH_ADVANTECH
 		if(rk_fb_is_dual_lcd_mode()){
 			extend_fbi->var.pixclock = rk_fb->fb[4]->var.pixclock;
@@ -4734,7 +4733,7 @@ int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 				dev_drv->ops->mmu_en(dev_drv);
 		}
 		rk_fb_alloc_buffer(extend_fbi);
-		extend_fbi->fbops->fb_set_par(extend_fbi);
+		//extend_fbi->fbops->fb_set_par(extend_fbi);
 		//extend_fbi->fbops->fb_pan_display(&extend_fbi->var,extend_fbi);
 	}
 #endif

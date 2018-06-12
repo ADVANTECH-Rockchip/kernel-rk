@@ -1809,7 +1809,6 @@ static int rk32_edp_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "screen is not edp!\n");
 		return -EINVAL;
 	}
-
 	platform_set_drvdata(pdev, edp);
 	dev_set_name(edp->dev, "rk32-edp");
 
@@ -1902,14 +1901,13 @@ static int rk32_edp_probe(struct platform_device *pdev)
 		debugfs_create_file("psr", S_IRUSR, edp->debugfs_dir,
 				    edp, &edp_psr_debugfs_fops);
 	}
-
 #endif
-
 	dev_info(&pdev->dev, "rk32 edp driver probe success\n");
 	if (!of_property_read_u32(np, "rockchip,edp-audio-enable", &val))
 		edp->audio_en = val;
 	if(edp->audio_en)
 		rk32_edp_config_audio();
+
 	return 0;
 }
 

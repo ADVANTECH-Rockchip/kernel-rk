@@ -256,7 +256,7 @@ struct display_timings *of_get_display_timings(struct device_node *np)
 	 */
 	of_node_put(native_mode);
 
-	pr_info("%s: got %d timings. Using timing #%d as default\n",
+	pr_debug("%s: got %d timings. Using timing #%d as default\n",
 		of_node_full_name(np), disp->num_timings,
 		disp->native_mode + 1);
 

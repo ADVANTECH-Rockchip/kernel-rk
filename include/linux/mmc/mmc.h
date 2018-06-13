@@ -289,6 +289,9 @@ struct _mmc_csd {
 #define EXT_CSD_BKOPS_START		164	/* W */
 #define EXT_CSD_SANITIZE_START		165     /* W */
 #define EXT_CSD_WR_REL_PARAM		166	/* RO */
+#ifdef CONFIG_ARCH_ROCKCHIP
+#define EXT_CSD_WRITE_RELIABLIITY	167	/* R/W */
+#endif
 #define EXT_CSD_RPMB_MULT		168	/* RO */
 #define EXT_CSD_BOOT_WP			173	/* R/W */
 #define EXT_CSD_ERASE_GROUP_DEF		175	/* R/W */

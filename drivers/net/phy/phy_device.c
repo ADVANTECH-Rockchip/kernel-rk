@@ -839,42 +839,13 @@ int genphy_read_status(struct phy_device *phydev)
 		return err;
 
 	if (AUTONEG_ENABLE == phydev->autoneg) {
-#ifdef CONFIG_ARCH_ADVANTECH
-		//TI dp83867
-		if(0x2000a231 == phydev->phy_id) {
-			lpagb = phy_read(phydev, 0x11);
-			if (lpagb < 0)
-				return lpagb;
-
-			lpa = phy_read(phydev, MII_LPA);
-			if (lpa < 0)
-				return lpa;
-			adv = phy_read(phydev, MII_ADVERTISE);
-			if (adv < 0)
-				return adv;
-			lpa &= adv;
-			
-			phydev->speed = SPEED_10;
-			phydev->duplex = DUPLEX_HALF;
-			phydev->pause = phydev->asym_pause = 0;
-			
-			if(0x8000 == (lpagb & 0xc000))
-				phydev->speed = SPEED_1000;
-			else if(0x4000 == (lpagb & 0xc000))
-				phydev->speed = SPEED_100;
-			if(0x2000 == (lpagb & 0x2000))
-				phydev->duplex = DUPLEX_FULL;
-		} else {
-#endif
 		if (phydev->supported & (SUPPORTED_1000baseT_Half
 					| SUPPORTED_1000baseT_Full)) {
 			lpagb = phy_read(phydev, MII_STAT1000);
-
 			if (lpagb < 0)
 				return lpagb;
 
 			adv = phy_read(phydev, MII_CTRL1000);
-
 			if (adv < 0)
 				return adv;
 
@@ -902,6 +873,19 @@ int genphy_read_status(struct phy_device *phydev)
 
 			if (lpagb & LPA_1000FULL)
 				phydev->duplex = DUPLEX_FULL;
+#ifdef CONFIG_ARCH_ADVANTECH
+				//TI dp83867
+				if(0x2000a231 == phydev->phy_id) {
+					lpagb = phy_read(phydev, MII_STAT1000);
+					if(!(0x3000 & lpagb)) {
+						lpagb = phy_read(phydev, 0x11);
+					if(0x4000 == (lpagb & 0xc000))
+						phydev->speed = SPEED_100;
+					if(0x2000 == (lpagb & 0x2000))
+						phydev->duplex = DUPLEX_FULL;
+					}
+				}
+#endif 
 		} else if (lpa & (LPA_100FULL | LPA_100HALF)) {
 			phydev->speed = SPEED_100;
 			
@@ -910,9 +894,7 @@ int genphy_read_status(struct phy_device *phydev)
 		} else
 			if (lpa & LPA_10FULL)
 				phydev->duplex = DUPLEX_FULL;
-#ifdef CONFIG_ARCH_ADVANTECH
-		}
-#endif
+
 		if (phydev->duplex == DUPLEX_FULL){
 			phydev->pause = lpa & LPA_PAUSE_CAP ? 1 : 0;
 			phydev->asym_pause = lpa & LPA_PAUSE_ASYM ? 1 : 0;

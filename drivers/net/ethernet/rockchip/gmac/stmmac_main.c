@@ -1080,7 +1080,7 @@ static int stmmac_init_phy(struct net_device *dev)
 	bsp_priv->led_active = 0;
 	spin_lock_init(&bsp_priv->led_lock);
 
-        bsp_priv->link = 0;
+	bsp_priv->link = 0;
 	return 0;
 }
 

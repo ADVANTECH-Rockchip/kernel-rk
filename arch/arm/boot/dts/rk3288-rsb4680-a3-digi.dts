@@ -231,7 +231,7 @@
 
 &gmac {
 //	power_ctl_by = "gpio";	//"gpio" "pmu"
-//	power-gpio = <&gpio0 GPIO_A6 GPIO_ACTIVE_HIGH>;
+//	power-gpio = <&gpio4 GPIO_A2 GPIO_ACTIVE_HIGH>;
 //	power-pmu = "act_ldo"
 	reset-gpio = <&gpio4 GPIO_A7 GPIO_ACTIVE_LOW>;
 	phy-mode = "rgmii";
@@ -566,7 +566,7 @@
 	screen3 = <&edp_1024x768>;
 	screen4 = <&hdmi_720p>;
 	screen5 = <&hdmi_2160p>;
-        screen6 = <&lvds_g215han01>;
+	screen6 = <&lvds_g215han01>;
 };
 
 &rk_screen {

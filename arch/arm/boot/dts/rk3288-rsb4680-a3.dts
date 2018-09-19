@@ -559,7 +559,7 @@
 	native-mode = <&edp_1920x1080>;
 	use-dts-screen = <0>;
 	prmry-screen = <&hdmi_1080p>;
-	extend-screen = <&lvds_lmt101dngfdd>;
+	extend-screen = <&edp_1920x1080>;
 };
 
 &rk_screen {

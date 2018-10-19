@@ -616,7 +616,21 @@ static const struct option_blacklist_info telit_le920_blacklist = {
 	.reserved = BIT(1) | BIT(5),
 };
 
+//neoway n720 8243
+static const struct option_blacklist_info neoway_n720_8243_blacklist = {
+	.reserved = BIT(0),
+};
+
+//neoway n720 8247
+static const struct option_blacklist_info neoway_n720_8247_blacklist = {
+	.reserved = BIT(4),
+};
+
 static const struct usb_device_id option_ids[] = {
+	{ USB_DEVICE(0x2949, 0x8243),
+		.driver_info = (kernel_ulong_t)&neoway_n720_8243_blacklist },//neoway n720 8243
+	{ USB_DEVICE(0x2949, 0x8247), 
+		.driver_info = (kernel_ulong_t)&neoway_n720_8247_blacklist },//neoway n720 8247
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },

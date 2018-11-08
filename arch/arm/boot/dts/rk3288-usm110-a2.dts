@@ -859,6 +859,15 @@
 	};
 };
 
+&isp{
+	pinctrl-names = "default", "isp_dvp8bit2", "isp_dvp10bit",
+			"isp_dvp12bit", "isp_dvp8bit0", "isp_mipi_fl",
+			"isp_mipi_fl_prefl";
+	/delete-property/ pinctrl-7;
+	/delete-property/ pinctrl-8;
+	/delete-property/ rockchip,gpios;
+};
+
 &cif{
 	status = "disabled";
 };

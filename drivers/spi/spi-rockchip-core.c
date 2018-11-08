@@ -577,13 +577,14 @@ static void pump_transfers(unsigned long data)
 	chip = dws->cur_chip;
 	spi = message->spi;
 
+#ifndef CONFIG_ARCH_ADVANTECH
 	if (unlikely(!chip->clk_div))
+#endif
 	{
 		chip->clk_div = dws->max_freq / chip->speed_hz;
 		chip->clk_div = (chip->clk_div + 1) & 0xfffe;
 		chip->speed_hz = dws->max_freq / chip->clk_div;
 	}
-
 
 	if (message->state == ERROR_STATE) {
 		message->status = -EIO;
@@ -621,8 +622,6 @@ static void pump_transfers(unsigned long data)
 		cs_change = 1;
 
 	cr0 = chip->cr0;
-
-	
 
 	/* Handle per transfer options for bpw and speed */
 	if (transfer->speed_hz) {

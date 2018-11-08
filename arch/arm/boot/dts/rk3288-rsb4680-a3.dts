@@ -408,25 +408,22 @@
 &spi1 {
 	status = "okay";
 	max-freq = <48000000>;
-	/*
-	spi_test@10 {
-		compatible = "rockchip,spi_test_bus1_cs0";
-		reg = <0>;
-		spi-max-frequency = <24000000>;
-		//spi-cpha;
-		//spi-cpol;
-		poll_mode = <0>;
-		type = <0>;
-		enable_dma = <0>;
-	};
-	*/
+	
 	m25p80@0 {
 		compatible = "w25q32";
 		spi-max-frequency = <24000000>;
-		reg = <0>;	/* CS address. */
+		reg = <0>;
 		spi-cpol;
 		spi-cpha;
 	};
+	/*
+	spidev@0 {
+		compatible = "spidev";
+		spi-max-frequency = <24000000>;
+		reg = <0>;
+		spi-cpha;
+		spi-cpol;
+	};*/
 };
 
 &spi2 {
@@ -943,6 +940,16 @@
 		status = "disabled";
 	};
 };
+
+&isp{
+	pinctrl-names = "default", "isp_dvp8bit2", "isp_dvp10bit",
+			"isp_dvp12bit", "isp_dvp8bit0", "isp_mipi_fl",
+			"isp_mipi_fl_prefl";
+	/delete-property/ pinctrl-7;
+	/delete-property/ pinctrl-8;
+	/delete-property/ rockchip,gpios;
+};
+
 &rk3288_cif_sensor{
 	status = "okay";
 };

@@ -292,6 +292,10 @@ struct uart_rk_port {
 	struct hrtimer tx_timer;
 	u32 tx_dma_enabled;
 	u32 wait_count;
+	u32 trigger_count;
+	u32 trigger_timer;
+	u32 rx_count;
+	u32 rx_timer;
 #endif
 };
 
@@ -698,6 +702,14 @@ static void serial_rk_stop_dma_rx(struct uart_rk_port *up)
 		dmaengine_terminate_all(uart_dma->dma_chan_rx);
 		uart_dma->rb_tail = 0;
 		uart_dma->rx_dma_used = 0;
+#ifdef CONFIG_ARCH_ADVANTECH
+		if(up->trigger_count) {
+			if(up->rx_count > 0)
+				tty_flip_buffer_push(&up->port.state->port);
+			up->rx_count = 0;
+			up->rx_timer = 0;
+		}
+#endif
 	}
 }
 
@@ -781,6 +793,10 @@ static int serial_rk_start_dma_rx(struct uart_rk_port *up)
 	dma_async_issue_pending(uart_dma->dma_chan_rx);
 
 	uart_dma->rx_dma_used = 1;
+#ifdef CONFIG_ARCH_ADVANTECH
+	up->rx_count = 0;
+	up->rx_timer = 0;
+#endif
 
 	if (uart_dma->use_timer == 1)
 		hrtimer_start(&uart_dma->rx_timer, ktime_set(0, uart_dma->rx_timeout * 1000000), HRTIMER_MODE_REL);
@@ -818,15 +834,37 @@ static enum hrtimer_restart serial_rk_report_dma_rx(struct hrtimer *timer)
 		printk("rx_size:%d ADDR:%x\n", uart_dma->rx_size, uart_dma->rb_head); */
 	while (1) {
 		count = CIRC_CNT_TO_END(uart_dma->rb_head, uart_dma->rb_tail, uart_dma->rb_size);
-		if (count <= 0)
+		if (count <= 0) {
+#ifdef CONFIG_ARCH_ADVANTECH
+			if(up->trigger_count && (up->rx_timer > up->trigger_timer) && (up->rx_count > 0)) {
+				tty_flip_buffer_push(&port->state->port);
+				up->rx_count = 0;
+				up->rx_timer = 0;
+			}
+#endif
 			break;
+		}
 		port->icount.rx += count;
 		flip = tty_insert_flip_string(&port->state->port, uart_dma->rx_buffer
 			+ uart_dma->rb_tail, count);
+#ifdef CONFIG_ARCH_ADVANTECH
+		if(up->trigger_count){
+			up->rx_count += count;
+			up->rx_timer = 0;
+			if(up->rx_count >= up->trigger_count) {
+				tty_flip_buffer_push(&port->state->port);
+				up->rx_count = 0;
+			}
+		} else
+#endif
 		tty_flip_buffer_push(&port->state->port);
 		uart_dma->rb_tail = (uart_dma->rb_tail + count) & (uart_dma->rb_size - 1);
 		up->port_activity = jiffies;
 	}
+	
+#ifdef CONFIG_ARCH_ADVANTECH
+	up->rx_timer++;
+#endif
 
 	if (uart_dma->use_timer == 1)
 		hrtimer_start(&uart_dma->rx_timer, ktime_set(0, uart_dma->rx_timeout * 1000000), HRTIMER_MODE_REL);
@@ -2128,6 +2166,16 @@ static int of_adv_parse_dt(struct device dev, struct uart_rk_port *up)
 		}
 OUT:
 		gpio_free(uart_mode_sel_gpio);
+	}
+
+	if(of_property_read_u32(np,"rx-trigger-count",&up->trigger_count))
+	{
+		dev_err(&dev,"rx-trigger-count get error,disable trigger count\n");
+		up->trigger_count = 0;
+	}else if(of_property_read_u32(np,"rx-trigger-timer",&up->trigger_timer))
+	{
+		dev_err(&dev,"rx-trigger-timer get error,use default trigger timer:2\n");
+		up->trigger_timer = 2;
 	}
 
 	return 0;

@@ -182,7 +182,7 @@
 	};
 
 	chosen {
-		bootargs = "vmalloc=512M";
+		bootargs = "vmalloc=512M quiet";
 	};
 	
 	regulators {

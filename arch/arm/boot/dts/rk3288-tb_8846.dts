@@ -2,7 +2,7 @@
 
 #include "rk3288.dtsi"
 //#include "lcd-b101ew05.dtsi"
-//#include "lcd-tv080wum-mipi.dtsi"i
+//#include "lcd-tv080wum-mipi.dtsi"
 #include "lcd-F402.dtsi"
 #include "vtl_ts_sdk8846.dtsi"
 #include "rk3288-cif-sensor.dtsi"

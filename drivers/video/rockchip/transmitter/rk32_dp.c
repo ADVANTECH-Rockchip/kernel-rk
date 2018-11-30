@@ -1493,6 +1493,39 @@ static int phy_power_channel(struct rk32_edp *edp, int state)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+static int rk32_edp_fb_event_notify(struct notifier_block *self,
+					   unsigned long action, void *data)
+{
+	struct fb_event *event = data;
+	int blank_mode = *((int *)event->data);
+
+	if (action == FB_EARLY_EVENT_BLANK) {
+		switch (blank_mode) {
+		case FB_BLANK_UNBLANK:
+			break;
+		default:
+			dev_info(rk32_edp->dev, "suspend edp\n");
+			rk32_edp_disable();
+			break;
+		}
+	} else if (action == FB_EVENT_BLANK) {
+		switch (blank_mode) {
+		case FB_BLANK_UNBLANK:
+			dev_info(rk32_edp->dev, "resume edp\n");
+			rk32_edp_enable();
+			break;
+		default:
+			break;
+		}
+	}
+	return NOTIFY_OK;
+}
+static struct notifier_block rk32_edp_fb_notifier = {
+	.notifier_call = rk32_edp_fb_event_notify,
+};
+#endif
+
 #if defined(CONFIG_DEBUG_FS)
 
 static int edp_dpcd_debugfs_show(struct seq_file *s, void *v)
@@ -1882,6 +1915,8 @@ static int rk32_edp_probe(struct platform_device *pdev)
 #endif
 	rk32_edp = edp;
 #ifdef CONFIG_ARCH_ADVANTECH
+	fb_register_client(&rk32_edp_fb_notifier);
+
 	if(rk_fb_is_dual_lcd_mode())
 		rk_fb_trsm_ops_register(&trsm_edp_ops, prop);
 	else

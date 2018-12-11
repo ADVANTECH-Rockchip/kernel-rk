@@ -81,7 +81,7 @@ static void rockchip_hdmiv1_set_pwr_mode(struct hdmi *hdmi_drv, int mode)
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL, 0x17);
 		break;
 	default:
-		dev_info(hdmi_drv->dev, "unkown rk3036 hdmi pwr mode %d\n",
+		dev_info(hdmi_drv->dev, "unknown rk3036 hdmi pwr mode %d\n",
 			 mode);
 	}
 
@@ -173,7 +173,7 @@ int rockchip_hdmiv1_read_edid(struct hdmi *hdmi_drv, int block, u8 *buf)
 			if ((checksum & 0xff) == 0) {
 				ret = 0;
 				dev_info(hdmi_drv->dev,
-					 "[%s] edid read sucess\n", __func__);
+					 "[%s] edid read success\n", __func__);
 				break;
 			}
 		}

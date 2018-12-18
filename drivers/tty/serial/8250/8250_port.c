@@ -37,6 +37,10 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/pm_runtime.h>
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
+#endif
 
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -53,6 +57,10 @@
 #endif
 
 #define BOTH_EMPTY 	(UART_LSR_TEMT | UART_LSR_THRE)
+
+#ifdef CONFIG_ARCH_ADVANTECH
+#define TX_TIMEOUT	200
+#endif
 
 /*
  * Here we define the default xmit fifo size used for each type of UART.
@@ -1312,8 +1320,25 @@ static void serial8250_start_tx(struct uart_port *port)
 
 	serial8250_rpm_get_tx(up);
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	if (port->rs485.flags & SER_RS485_ENABLED) {
+		if (port->rs485.flags & SER_RS485_RTS_ON_SEND) {
+			gpio_direction_output(up->rs485_gpio,up->rs485_tx_active);
+			udelay(1);
+			up->tx_dma_enabled = 0;
+		}
+	}
+#endif
+
 	if (up->dma && !up->dma->tx_dma(up))
+#ifdef CONFIG_ARCH_ADVANTECH
+	{
+		up->tx_dma_enabled = 1;
+		goto OUT;
+	}
+#else
 		return;
+#endif
 
 	if (!(up->ier & UART_IER_THRI)) {
 		up->ier |= UART_IER_THRI;
@@ -1335,6 +1360,17 @@ static void serial8250_start_tx(struct uart_port *port)
 		up->acr &= ~UART_ACR_TXDIS;
 		serial_icr_write(up, UART_ACR, up->acr);
 	}
+
+#ifdef CONFIG_ARCH_ADVANTECH
+OUT:
+	if (port->rs485.flags & SER_RS485_ENABLED) {
+		if (port->rs485.flags & SER_RS485_RTS_ON_SEND) {
+			hrtimer_try_to_cancel(&up->tx_timer);
+			up->wait_count = TX_TIMEOUT;
+			hrtimer_start(&up->tx_timer, ns_to_ktime(2000000), HRTIMER_MODE_REL);
+		}
+	}
+#endif
 }
 
 static void serial8250_throttle(struct uart_port *port)
@@ -2207,6 +2243,10 @@ static void serial8250_set_divisor(struct uart_port *port, unsigned int baud,
 {
 	struct uart_8250_port *up = up_to_u8250p(port);
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+	serial_port_out(port, UART_MCR, UART_MCR_LOOP);
+#endif
+
 	/* Workaround to enable 115200 baud on OMAP1510 internal ports */
 	if (is_omap1510_8250(up)) {
 		if (baud == 115200) {
@@ -2226,6 +2266,13 @@ static void serial8250_set_divisor(struct uart_port *port, unsigned int baud,
 		serial_port_out(port, UART_LCR, up->lcr | UART_LCR_DLAB);
 
 	serial_dl_write(up, quot);
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	serial_port_out(port, UART_MCR, up->mcr);
+	if (quot != serial_dl_read(up))
+		pr_warn_ratelimited("ttyS%d set divisor fail, quot:%d != dll,dlh:%d\n",
+					 serial_index(port), quot, serial_dl_read(up));
+#endif
 
 	/* XR17V35x UARTs have an extra fractional divisor register (DLD) */
 	if (up->port.type == PORT_XR17V35X) {
@@ -2330,6 +2377,7 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 	if ((termios->c_cflag & CREAD) == 0)
 		port->ignore_status_mask |= UART_LSR_DR;
 
+#ifndef CONFIG_ARCH_ROCKCHIP
 	/*
 	 * CTS flow control flag and modem status interrupts
 	 */
@@ -2343,6 +2391,7 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 		up->ier |= UART_IER_RTOIE;
 
 	serial_port_out(port, UART_IER, up->ier);
+#endif
 
 	if (up->capabilities & UART_CAP_EFR) {
 		unsigned char efr = 0;
@@ -2361,7 +2410,13 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 			serial_port_out(port, UART_EFR, efr);
 	}
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+	/* Reset uart to make sure it is idle, then set buad rate */
+	serial_port_out(port, 0x88 >> 2, 0x7);
+#endif
+
 	serial8250_set_divisor(port, baud, quot, frac);
+
 #ifdef CONFIG_ARCH_ROCKCHIP
 	up->fcr = UART_FCR_ENABLE_FIFO | UART_FCR_T_TRIG_10 | UART_FCR_R_TRIG_10;
 #endif
@@ -2380,6 +2435,23 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 		serial_port_out(port, UART_FCR, up->fcr);	/* set fcr */
 	}
 	serial8250_set_mctrl(port, port->mctrl);
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	/*
+	 * CTS flow control flag and modem status interrupts
+	 */
+	up->ier &= ~UART_IER_MSI;
+	if (!(up->bugs & UART_BUG_NOMSR) &&
+			UART_ENABLE_MS(&up->port, termios->c_cflag))
+		up->ier |= UART_IER_MSI;
+	if (up->capabilities & UART_CAP_UUE)
+		up->ier |= UART_IER_UUE;
+	if (up->capabilities & UART_CAP_RTOIE)
+		up->ier |= UART_IER_RTOIE;
+
+	serial_port_out(port, UART_IER, up->ier);
+#endif
+
 	spin_unlock_irqrestore(&port->lock, flags);
 	serial8250_rpm_put(up);
 

@@ -53,6 +53,11 @@
 #include "stmmac.h"
 #include <linux/reset.h>
 #include <linux/of_mdio.h>
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/of_gpio.h>
+#include <linux/proc_fs.h>
+struct platform_device *gdev= NULL;
+#endif
 
 #define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
 
@@ -1796,6 +1801,14 @@ static int stmmac_open(struct net_device *dev)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
 	int ret;
+#ifdef CONFIG_ARCH_ADVANTECH
+	struct stmmac_mdio_bus_data *data = priv->plat->mdio_bus_data;
+
+	if(gpio_is_valid(data->reset_gpio))
+		gpio_set_value(data->reset_gpio, data->active_low ? 1 : 0);
+	if (data->delays[1])
+		msleep(DIV_ROUND_UP(data->delays[1], 1000));
+#endif
 
 	stmmac_check_ether_addr(priv);
 
@@ -1901,6 +1914,9 @@ dma_desc_error:
 static int stmmac_release(struct net_device *dev)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
+#ifdef CONFIG_ARCH_ADVANTECH
+	struct stmmac_mdio_bus_data *data = priv->plat->mdio_bus_data;
+#endif
 
 	if (priv->eee_enabled)
 		del_timer_sync(&priv->eee_ctrl_timer);
@@ -1942,6 +1958,11 @@ static int stmmac_release(struct net_device *dev)
 #endif
 
 	stmmac_release_ptp(priv);
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(gpio_is_valid(data->reset_gpio))
+		gpio_set_value(data->reset_gpio, data->active_low ? 0 : 1);
+#endif
 
 	return 0;
 }
@@ -2824,6 +2845,138 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#define REALTEK_8211E_PHY_ID	0x001cc915
+#define TI_DP83867_PHY_ID	0x2000a231
+#define DP83867_DEVADDR		0x1f
+#define DP83867_RGMIICTL	0x0032
+#define DP83867_RGMIIDCTL	0x0086
+#define DP83867_RGMII_TX_CLK_DELAY_EN		BIT(1)
+#define DP83867_RGMII_RX_CLK_DELAY_EN		BIT(0)
+#define DP83867_RGMII_TX_CLK_DELAY_SHIFT	4
+
+static int net_testmode_write(struct file *file, const char __user * buffer,
+               size_t count, loff_t *offset)
+{
+	int i,addr;
+	char line[8];
+	int ret;
+	struct platform_device *pdev = (struct platform_device *)gdev;
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *stmmac = netdev_priv(ndev);
+	struct phy_device *phydev;
+	size_t buf_size;
+
+	memset(line,0,sizeof(line));
+	buf_size = min(count, (sizeof(line)-1));
+	ret = copy_from_user(line, buffer, buf_size);
+	if (ret)
+		return -EFAULT;
+	line[buf_size] = 0;
+
+	for (i = 0 ; i < PHY_MAX_ADDR; i++)
+	{
+		if (stmmac->mii->phy_map[i] && stmmac->mii->phy_map[i]->phy_id)
+			break;
+	}
+	if(i >= PHY_MAX_ADDR)
+		return -ENODEV;
+
+	phydev = stmmac->mii->phy_map[i];
+	addr = phydev->addr;
+
+	if(TI_DP83867_PHY_ID == phydev->phy_id)
+	{
+		/* Access TI DP83867 internal register to measure IEEE waveform */
+		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x8000);//reset PHY
+		stmmac->mii->write(stmmac->mii, addr, 0x00, 0x0140);//1000 Base-T Mode
+		stmmac->mii->write(stmmac->mii, addr, 0x10, 0x5008);//forced MDI Mode
+	}
+	else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
+	{
+		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0005);
+		stmmac->mii->write(stmmac->mii, addr, 0x05, 0x8b86);
+		stmmac->mii->write(stmmac->mii, addr, 0x06, 0xe200);
+		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0007);
+		stmmac->mii->write(stmmac->mii, addr, 0x1e, 0x0020);
+		stmmac->mii->write(stmmac->mii, addr, 0x15, 0x0108);
+		stmmac->mii->write(stmmac->mii, addr, 0x1f, 0x0000);
+	}
+	else
+		return -ENODEV;
+	
+	if (strstr(line, "1"))
+	{
+		printk("1000M BASE-T test mode 1\n");
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x3B00);//Test Mode 1
+			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);//output test mode to all channels
+			phy_write_mmd_indirect(phydev, 0x01D5, DP83867_DEVADDR, 0xF508);
+		}
+		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x2200);
+		}
+	}
+	else if (strstr(line, "2"))
+	{
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x5B00);
+			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
+		}
+		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x4200);
+		}
+	}
+	else if (strstr(line, "3"))
+	{
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x7B00);
+			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
+		}
+		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x6200);
+		}
+	}
+	else if (strstr(line, "4"))
+	{
+		printk("1000M BASE-T test mode 4\n");
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, i, 0x09, 0x9B00);//Test Mode 4
+			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);
+		}
+		else if(REALTEK_8211E_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x8200);
+		}
+	}
+	else if (strstr(line, "5"))
+	{
+		printk("100M BASE-TX test mode 5\n");
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			stmmac->mii->write(stmmac->mii, addr, 0x00, 0x2100);//programs DUT to 100Base-TX Mode
+			stmmac->mii->write(stmmac->mii, addr, 0x09, 0xBB00);//Test Mode 5
+			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);//output test mode to all channels
+		}
+	}
+
+	return count;
+}
+
+static const struct file_operations net_testmode_fops = {
+	.owner = THIS_MODULE,
+	.write = net_testmode_write,
+};
+
+#endif
+
 /**
  * stmmac_dvr_probe
  * @device: device pointer
@@ -2980,6 +3133,11 @@ int stmmac_dvr_probe(struct device *device,
 			   __func__, ret);
 		goto error_netdev_register;
 	}
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	gdev = to_platform_device(device);
+	proc_create("net_testmode", 0777, NULL, &net_testmode_fops);
+#endif
 
 	return ret;
 

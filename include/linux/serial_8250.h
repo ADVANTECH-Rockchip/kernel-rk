@@ -118,6 +118,14 @@ struct uart_8250_port {
 
 	struct uart_8250_dma	*dma;
 	const struct uart_8250_ops *ops;
+#ifdef CONFIG_ARCH_ADVANTECH
+	/* RS-485/232 fields */
+	uint rs485_gpio;
+	uint rs485_tx_active;
+	struct hrtimer tx_timer;
+	u32 tx_dma_enabled;
+	u32 wait_count;
+#endif
 
 	/* 8250 specific callbacks */
 	int			(*dl_read)(struct uart_8250_port *);

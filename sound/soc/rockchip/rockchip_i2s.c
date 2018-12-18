@@ -770,7 +770,22 @@ static struct platform_driver rockchip_i2s_driver = {
 		.pm = &rockchip_i2s_pm_ops,
 	},
 };
+#ifdef CONFIG_ARCH_ADVANTECH
+static int __init rockchip_i2s_driver_init(void)
+{
+	return platform_driver_register(&rockchip_i2s_driver);
+}
+
+static void __exit rockchip_i2s_driver_exit(void)
+{
+	platform_driver_unregister(&rockchip_i2s_driver);
+}
+
+late_initcall(rockchip_i2s_driver_init);
+module_exit(rockchip_i2s_driver_exit);
+#else
 module_platform_driver(rockchip_i2s_driver);
+#endif
 
 MODULE_DESCRIPTION("ROCKCHIP IIS ASoC Interface");
 MODULE_AUTHOR("jianqun <jay.xu@rock-chips.com>");

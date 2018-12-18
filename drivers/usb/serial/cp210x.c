@@ -238,7 +238,10 @@ static struct usb_serial_driver cp210x_device = {
 	.tiocmset		= cp210x_tiocmset,
 	.attach			= cp210x_startup,
 	.release		= cp210x_release,
-	.dtr_rts		= cp210x_dtr_rts
+	.dtr_rts		= cp210x_dtr_rts,
+#ifdef CONFIG_ARCH_ADVANTECH
+	.get_icount		= usb_serial_generic_get_icount,
+#endif
 };
 
 static struct usb_serial_driver * const serial_drivers[] = {

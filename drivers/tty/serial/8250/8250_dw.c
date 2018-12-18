@@ -30,10 +30,16 @@
 
 #include <asm/byteorder.h>
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
+#endif
+
 #include "8250.h"
 
 /* Offsets for the DesignWare specific registers */
 #define DW_UART_USR	0x1f /* UART Status Register */
+#define DW_UART_RFL	0x21 /* UART Receive Fifo Level Register */
 #define DW_UART_CPR	0xf4 /* Component Parameter Register */
 #define DW_UART_UCV	0xf8 /* UART Component Version */
 
@@ -191,7 +197,7 @@ static int dw8250_handle_irq(struct uart_port *p)
 {
 	struct dw8250_data *d = p->private_data;
 	unsigned int iir = p->serial_in(p, UART_IIR);
-	unsigned int status;
+	unsigned int status, usr, rfl;
 	unsigned long flags;
 
 	/*
@@ -203,9 +209,10 @@ static int dw8250_handle_irq(struct uart_port *p)
 	 */
 	if ((iir & 0x3f) == UART_IIR_RX_TIMEOUT) {
 		spin_lock_irqsave(&p->lock, flags);
+		usr = p->serial_in(p, d->usr_reg);
 		status = p->serial_in(p, UART_LSR);
-
-		if (!(status & (UART_LSR_DR | UART_LSR_BI)))
+		rfl = p->serial_in(p, DW_UART_RFL);
+		if (!(status & (UART_LSR_DR | UART_LSR_BI)) && !(usr & 0x1) && (rfl == 0))
 			(void) p->serial_in(p, UART_RX);
 
 		spin_unlock_irqrestore(&p->lock, flags);
@@ -394,6 +401,121 @@ static void dw8250_setup_port(struct uart_port *p)
 		up->capabilities |= UART_CAP_AFE;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#define BOTH_EMPTY 	(UART_LSR_TEMT | UART_LSR_THRE)
+
+static int adv_rs485_config(struct uart_port *port,
+			    struct serial_rs485 *rs485conf)
+{
+	/* unimplemented */
+	rs485conf->delay_rts_before_send = 0;
+	rs485conf->delay_rts_after_send = 0;
+
+	/* RTS is required to control the transmitter */
+
+	port->rs485 = *rs485conf;
+
+	return 0;
+}
+
+static enum hrtimer_restart serial_rk_report_dma_tx(struct hrtimer *timer)
+{
+	struct uart_8250_port *data = container_of(timer, struct uart_8250_port, tx_timer);
+	unsigned int set = 0;
+	unsigned int status;
+
+	if (data->tx_dma_enabled){
+		if (data->dma->tx_running){
+			goto cont;
+		}
+	}
+	
+	status = serial_in(data, UART_LSR);
+	if ((status & BOTH_EMPTY) == BOTH_EMPTY){
+		set = 1;
+		goto ret;
+	}
+
+cont:
+	if (--data->wait_count == 0){
+		set = 1;
+		goto ret;
+	}
+
+	if (data->wait_count)
+		hrtimer_start(&data->tx_timer, ns_to_ktime(2000000), HRTIMER_MODE_REL);
+
+ret:
+	if(set)
+		gpio_direction_output(data->rs485_gpio,!data->rs485_tx_active);
+	return HRTIMER_NORESTART;
+}
+
+static int of_adv_parse_dt(struct device dev, struct uart_8250_port *port)
+{
+	struct device_node *np = dev.of_node;
+	int ret = 0;
+	enum of_gpio_flags flags;
+	struct pinctrl *pinctrl;
+	struct pinctrl_state	*state;
+
+	int uart_mode_sel_gpio = 
+		of_get_named_gpio_flags(np, "uart-sel-gpio", 0, &flags);
+
+	if (gpio_is_valid(uart_mode_sel_gpio))
+	{
+		ret = gpio_request(uart_mode_sel_gpio,"UART Mode Select");
+		if(ret){
+			dev_warn(&dev, "Could not request GPIO %d : %d\n",
+			uart_mode_sel_gpio, ret);
+			return -EFAULT;
+		}
+
+		ret = gpio_direction_input(uart_mode_sel_gpio);
+		if(ret){
+			dev_warn(&dev, "Could not drive GPIO %d :%d\n",
+			uart_mode_sel_gpio, ret);
+			goto OUT;
+		}
+
+		//read gpio value; H =>RS232  L =>RS422/485 
+		if(gpio_get_value(uart_mode_sel_gpio) == 0){
+			dev_info(&dev, "RS485 MODE\n");
+			port->rs485_gpio = of_get_named_gpio_flags(np, "rs485-tx-active", 0, &flags);
+			port->rs485_tx_active = (flags & OF_GPIO_ACTIVE_LOW)? 0:1;
+			if (gpio_is_valid(port->rs485_gpio))
+			{
+				pinctrl = devm_pinctrl_get(port->port.dev);
+				if (!IS_ERR(pinctrl)) {
+					state = pinctrl_lookup_state(pinctrl,"rts_gpio");
+					if (!IS_ERR(state)){
+						ret = pinctrl_select_state(pinctrl, state);
+						if(ret)
+							dev_warn(&dev,"pinctrl_select_state rts_gpio failed!");
+						else {
+							gpio_request(port->rs485_gpio,"RS485 Select");
+							gpio_direction_output(port->rs485_gpio,!port->rs485_tx_active);
+							port->port.rs485.flags = SER_RS485_ENABLED | SER_RS485_RTS_ON_SEND;
+							port->port.rs485_config = adv_rs485_config;
+							//hrtimer_init(&port->tx_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+							port->tx_timer.function = serial_rk_report_dma_tx;
+						}
+					} else
+						dev_warn(&dev,"pinctrl_lookup_state rts_gpio failed!");
+				} else
+					dev_warn(&dev,"devm_pinctrl_get rts_gpio failed!");
+			}
+		}else{
+			dev_info(&dev, "RS232 MODE\n");
+		}
+OUT:
+		gpio_free(uart_mode_sel_gpio);
+	}
+
+	return 0;
+}
+#endif
+
 static int dw8250_probe(struct platform_device *pdev)
 {
 	struct uart_8250_port uart = {};
@@ -514,6 +636,10 @@ static int dw8250_probe(struct platform_device *pdev)
 			goto err_clk;
 		}
 	}
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	of_adv_parse_dt(pdev->dev,&uart);
+#endif
 
 	data->rst = devm_reset_control_get_optional(&pdev->dev, NULL);
 	if (IS_ERR(data->rst) && PTR_ERR(data->rst) == -EPROBE_DEFER) {

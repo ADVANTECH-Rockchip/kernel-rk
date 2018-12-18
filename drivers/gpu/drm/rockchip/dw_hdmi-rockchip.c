@@ -239,7 +239,11 @@ static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 		},
 	},  {
 		92000000, {
+#ifdef CONFIG_ARCH_ADVANTECH
+			{ 0x013e, 0x0003 },
+#else
 			{ 0x0072, 0x0001 },
+#endif
 			{ 0x2145, 0x0002 },
 			{ 0x4061, 0x0002 },
 		},
@@ -257,7 +261,11 @@ static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 		},
 	},  {
 		184000000, {
+#ifdef CONFIG_ARCH_ADVANTECH
+			{ 0x0051, 0x0003 },
+#else
 			{ 0x0051, 0x0002 },
+#endif
 			{ 0x214c, 0x0003 },
 			{ 0x4064, 0x0003 },
 		},
@@ -281,7 +289,11 @@ static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 		},
 	},  {
 		600000000, {
+#ifdef CONFIG_ARCH_ADVANTECH
+			{ 0x1a7c, 0x0003 },
+#else
 			{ 0x1a40, 0x0003 },
+#endif
 			{ 0x3b4c, 0x0003 },
 			{ 0x5a64, 0x0003 },
 		},
@@ -337,6 +349,10 @@ static const struct dw_hdmi_mpll_config rockchip_mpll_cfg_420[] = {
 static const struct dw_hdmi_curr_ctrl rockchip_cur_ctr[] = {
 	/*      pixelclk    bpp8    bpp10   bpp12 */
 	{
+#ifdef CONFIG_ARCH_ADVANTECH
+		92000000, { 0x0038, 0x0000, 0x0000 },
+	},  {
+#endif
 		600000000, { 0x0000, 0x0000, 0x0000 },
 	},  {
 		~0UL,      { 0x0000, 0x0000, 0x0000},

@@ -20,3 +20,13 @@ config ARCH_ROCKCHIP
 	help
 	  Support for Rockchip's Cortex-A9 Single-to-Quad-Core-SoCs
 	  containing the RK2928, RK30xx and RK31xx series.
+
+if ARCH_ROCKCHIP
+
+config ARCH_ADVANTECH
+	bool "Support Advantech board"
+	help
+	  Support Advantech boards series,such as rsb-4680,ebc-rb03...
+
+endif
+

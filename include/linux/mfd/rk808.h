@@ -158,7 +158,11 @@ enum rk805_reg {
 #define RK808_INT_STS_MSK_REG1	0x4d
 #define RK808_INT_STS_REG2	0x4e
 #define RK808_INT_STS_MSK_REG2	0x4f
+#ifdef CONFIG_ARCH_ADVANTECH
+#define RK808_IO_POL_REG	0x9f
+#else
 #define RK808_IO_POL_REG	0x50
+#endif
 
 #define RK818_VB_MON_REG		0x21
 #define RK818_THERMAL_REG		0x22
@@ -762,6 +766,9 @@ enum rk805_reg {
 #define BUCK3_4_IMAX_MAX			(0x3 << 3)
 #define BOOST_DISABLE				((0x1 << 5) | (0x0 << 1))
 #define BUCK4_VRP_3PERCENT			0xc0
+#define RK816_BUCK_DVS_CONFIRM			(0x1 << 7)
+#define RK816_TYPE_ES2				0x05
+#define RK816_CHIP_VERSION_MASK			0x0f
 
 #define TEMP105C			0x08
 #define TEMP115C			0x0c
@@ -773,6 +780,7 @@ enum rk805_reg {
 #define PWM_MODE_MSK			BIT(7)
 #define FPWM_MODE			BIT(7)
 #define AUTO_PWM_MODE			0
+#define REGS_WMSK			0xf0
 
 enum rk817_reg_id {
 	RK817_ID_DCDC1 = 0,

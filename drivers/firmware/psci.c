@@ -232,8 +232,17 @@ static int get_set_conduit_method(struct device_node *np)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+extern void pm_adv_reboot(void);
+#endif
+
 static void psci_sys_reset(enum reboot_mode reboot_mode, const char *cmd)
 {
+#ifdef CONFIG_ARCH_ADVANTECH
+	if(!cmd || (strcmp(cmd, "recovery")))
+		pm_adv_reboot();
+#endif
+
 	invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
 }
 

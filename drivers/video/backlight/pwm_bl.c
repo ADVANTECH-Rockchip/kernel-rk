@@ -24,6 +24,11 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/of_gpio.h>
+#endif
+
+
 struct pwm_bl_data {
 	struct pwm_device	*pwm;
 	struct device		*dev;
@@ -33,6 +38,9 @@ struct pwm_bl_data {
 	bool			enabled;
 	struct regulator	*power_supply;
 	struct gpio_desc	*enable_gpio;
+#ifdef CONFIG_ARCH_ADVANTECH
+	int			active_status;
+#endif
 	unsigned int		scale;
 	bool			legacy;
 	int			(*notify)(struct device *,
@@ -55,7 +63,11 @@ static void pwm_backlight_power_on(struct pwm_bl_data *pb, int brightness)
 		dev_err(pb->dev, "failed to enable power supply\n");
 
 	if (pb->enable_gpio)
+	#ifdef CONFIG_ARCH_ADVANTECH
+		gpiod_set_value(pb->enable_gpio, pb->active_status);
+	#else
 		gpiod_set_value(pb->enable_gpio, 1);
+	#endif
 
 	pwm_enable(pb->pwm);
 	pb->enabled = true;
@@ -70,7 +82,11 @@ static void pwm_backlight_power_off(struct pwm_bl_data *pb)
 	pwm_disable(pb->pwm);
 
 	if (pb->enable_gpio)
+	#ifdef CONFIG_ARCH_ADVANTECH
+		gpiod_set_value(pb->enable_gpio, !pb->active_status);
+	#else
 		gpiod_set_value(pb->enable_gpio, 0);
+	#endif
 
 	regulator_disable(pb->power_supply);
 	pb->enabled = false;
@@ -206,6 +222,10 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	int initial_blank = FB_BLANK_UNBLANK;
 	struct pwm_args pargs;
 	int ret;
+#ifdef CONFIG_ARCH_ADVANTECH
+	enum of_gpio_flags flags;
+	int  bl_enable_gpio;
+#endif
 
 	if (!data) {
 		ret = pwm_backlight_parse_dt(&pdev->dev, &defdata);
@@ -247,8 +267,24 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	pb->dev = &pdev->dev;
 	pb->enabled = false;
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	bl_enable_gpio = of_get_named_gpio_flags(node, "enable-gpios", 0, &flags);
+	if (gpio_is_valid(bl_enable_gpio))
+		pb->active_status = !(flags & OF_GPIO_ACTIVE_LOW);
+	else
+		pb->active_status = 1;
+
+	if(pb->active_status)
+		pb->enable_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
+						  	GPIOD_OUT_LOW);
+	else
+		pb->enable_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
+						  	GPIOD_OUT_HIGH);
+
+#else
 	pb->enable_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
 						  GPIOD_ASIS);
+#endif
 	if (IS_ERR(pb->enable_gpio)) {
 		ret = PTR_ERR(pb->enable_gpio);
 		goto err_alloc;
@@ -259,8 +295,17 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	 * platform data. Must go away soon.
 	 */
 	if (!pb->enable_gpio && gpio_is_valid(data->enable_gpio)) {
+	#ifdef CONFIG_ARCH_ADVANTECH
+		if(pb->active_status)
+			ret = devm_gpio_request_one(&pdev->dev, data->enable_gpio,
+					    	GPIOF_OUT_INIT_LOW, "enable");
+		else
+			ret = devm_gpio_request_one(&pdev->dev, data->enable_gpio,
+					    	GPIOF_OUT_INIT_HIGH, "enable");
+	#else
 		ret = devm_gpio_request_one(&pdev->dev, data->enable_gpio,
 					    GPIOF_OUT_INIT_HIGH, "enable");
+	#endif
 		if (ret < 0) {
 			dev_err(&pdev->dev, "failed to request GPIO#%d: %d\n",
 				data->enable_gpio, ret);
@@ -282,7 +327,14 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		    gpiod_get_value(pb->enable_gpio) == 0)
 			initial_blank = FB_BLANK_POWERDOWN;
 		else
+		#ifdef CONFIG_ARCH_ADVANTECH
+			if(pb->active_status)
+				gpiod_direction_output(pb->enable_gpio, 0);
+			else
+				gpiod_direction_output(pb->enable_gpio, 1);
+		#else
 			gpiod_direction_output(pb->enable_gpio, 1);
+		#endif
 	}
 
 	pb->power_supply = devm_regulator_get(&pdev->dev, "power");

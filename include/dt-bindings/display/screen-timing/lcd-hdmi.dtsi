@@ -1,0 +1,69 @@
+/*
+ * RockChip. LCD_HDMI display timing
+ *
+ */
+
+/ {
+	disp_timings: display-timings {
+		hdmi_720p: hdmi-720p {
+			out-face    = <OUT_P888>;
+			color-mode = <COLOR_YCBCR>;
+			clock-frequency = <74250000>;
+			hactive = <1280>;
+			vactive = <720>;
+			hback-porch = <220>;
+			hfront-porch = <110>;
+			vback-porch = <20>;
+			vfront-porch = <5>;
+			hsync-len = <40>;
+			vsync-len = <5>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <0>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+		hdmi_1080p: hdmi-1080p {
+			out-face    = <OUT_P888>;
+			color-mode = <COLOR_YCBCR>;
+			clock-frequency = <148500000>;
+			hactive = <1920>;
+			vactive = <1080>;
+			hback-porch = <148>;
+			hfront-porch = <88>;
+			vback-porch = <36>;
+			vfront-porch = <4>;
+			hsync-len = <44>;
+			vsync-len = <5>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <0>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+		hdmi_2160p: hdmi-2160p {
+			out-face    = <OUT_P888>;
+			color-mode = <COLOR_YCBCR>;
+			clock-frequency = <297000000>;
+			hactive = <3840>;
+			vactive = <2160>;
+			hback-porch = <296>;
+			hfront-porch = <176>;
+			vback-porch = <72>;
+			vfront-porch = <8>;
+			hsync-len = <88>;
+			vsync-len = <10>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <0>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
+	};
+};

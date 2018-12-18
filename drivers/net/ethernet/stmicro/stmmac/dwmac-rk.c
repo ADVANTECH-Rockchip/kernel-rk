@@ -1482,6 +1482,48 @@ out:
 				addr[3], addr[4], addr[5]);
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#define DP83867_PHY_ID		0x2000a231
+#define DP83867_DEVADDR		0x1f
+
+static int dp83867_phy_fixup(struct phy_device *phydev)
+{
+	unsigned int addr,mask,val,len,ori;
+	int i;
+	const __be32 *parp;
+	struct device_node *np;
+
+	if (phydev->interface == PHY_INTERFACE_MODE_RGMII){
+		np = of_find_compatible_node(NULL, NULL, "rockchip,rk3288-gmac");
+		if (np) {
+			parp = of_get_property(np, "phy_reg_config", &len);
+			if (parp == NULL)
+				return 0;
+			len = len / sizeof(int);
+			for (i = 0; i+2 < len; i+=3) {
+				addr = be32_to_cpu(parp[i+0]);
+				mask = be32_to_cpu(parp[i+1]);
+				val = be32_to_cpu(parp[i+2]);
+
+				if(addr < 0x20) {
+					ori = phy_read(phydev, addr);
+					ori &= ~mask;
+					ori |= val;
+					phy_write(phydev, addr, ori);
+				} else {
+					ori = phy_read_mmd_indirect(phydev, addr, DP83867_DEVADDR);
+					ori &= ~mask;
+					ori |= val;
+					phy_write_mmd_indirect(phydev, addr, DP83867_DEVADDR, ori);
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+#endif
+
 static int rk_gmac_probe(struct platform_device *pdev)
 {
 	struct plat_stmmacenet_data *plat_dat;
@@ -1502,6 +1544,15 @@ static int rk_gmac_probe(struct platform_device *pdev)
 	plat_dat = stmmac_probe_config_dt(pdev, &stmmac_res.mac);
 	if (IS_ERR(plat_dat))
 		return PTR_ERR(plat_dat);
+
+#ifdef CONFIG_ARCH_ADVANTECH
+	/* register the PHY board fixup (for TI DP83867) */
+	ret = phy_register_fixup_for_uid(DP83867_PHY_ID, 0xfffffff0,
+					 dp83867_phy_fixup);
+	/* we can live without it, so just issue a warning */
+	if (ret)
+		dev_warn(&pdev->dev, "Cannot register PHY board fixup.\n");
+#endif
 
 	plat_dat->has_gmac = true;
 	plat_dat->fix_mac_speed = rk_fix_speed;

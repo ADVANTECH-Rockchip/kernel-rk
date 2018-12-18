@@ -1077,6 +1077,19 @@ int genphy_read_status(struct phy_device *phydev)
 
 			if (common_adv_gb & LPA_1000FULL)
 				phydev->duplex = DUPLEX_FULL;
+#ifdef CONFIG_ARCH_ADVANTECH
+			//TI dp83867
+			if(0x2000a231 == phydev->phy_id) {
+				lpagb = phy_read(phydev, MII_STAT1000);
+				if(!(0x3000 & lpagb)) {
+					lpagb = phy_read(phydev, 0x11);
+				if(0x4000 == (lpagb & 0xc000))
+					phydev->speed = SPEED_100;
+				if(0x2000 == (lpagb & 0x2000))
+					phydev->duplex = DUPLEX_FULL;
+				}
+			}
+#endif 
 		} else if (common_adv & (LPA_100FULL | LPA_100HALF)) {
 			phydev->speed = SPEED_100;
 

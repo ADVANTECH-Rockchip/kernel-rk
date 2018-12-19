@@ -109,6 +109,8 @@ static void hdmi_wq_set_video(struct hdmi *hdmi)
 		} else {
 			video->color_output = hdmi->colormode;
 		}
+		if (hdmi->vic == HDMI_2560X1600P_50HZ)
+			video->color_output = HDMI_COLOR_RGB_0_255;
 		if (hdmi->vic & HDMI_VIDEO_YUV420) {
 			video->color_output = HDMI_COLOR_YCBCR420;
 			deepcolor = hdmi->edid.deepcolor_420;

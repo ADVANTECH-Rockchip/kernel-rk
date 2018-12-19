@@ -127,6 +127,7 @@ enum hdmi_video_infomation_code {
 	HDMI_3840X2160P_30HZ_21_9,	/*105*/
 	HDMI_3840X2160P_50HZ_21_9,
 	HDMI_3840X2160P_60HZ_21_9,
+	HDMI_2560X1600P_50HZ,
 };
 
 /* HDMI Extended Resolution */

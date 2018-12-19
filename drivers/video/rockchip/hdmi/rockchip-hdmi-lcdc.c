@@ -771,6 +771,28 @@ static const struct hdmi_video_timing hdmi_mode[] = {
 		.pixelrepeat = 1,
 		.interface = OUT_P888,
 	},
+	{
+		.mode = {
+			.name = "2560x1600@50Hz",
+			.refresh = 50,
+			.xres = 2560,
+			.yres = 1600,
+			.pixclock = 222000000,
+			.left_margin = 123,
+			.right_margin = 50,
+			.upper_margin = 12,
+			.lower_margin = 4,
+			.hsync_len = 10,
+			.vsync_len = 4,
+			.sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+			.vmode = 0,
+			.flag = 0,
+		},
+		.vic = HDMI_2560X1600P_50HZ,
+		.vic_2nd = 0,
+		.pixelrepeat = 1,
+		.interface = OUT_P888,
+	},
 };
 
 static int hdmi_set_info(struct rk_screen *screen, struct hdmi *hdmi)

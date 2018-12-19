@@ -162,57 +162,6 @@
 		regulator-name = "vdd_lvds";
 	};
 
-	hdmi_sound: hdmi-sound {
-		status = "disabled";
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "rockchip,hdmi";
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,cpu {
-			sound-dai = <&i2s>;
-		};
-		simple-audio-card,codec {
-			sound-dai = <&hdmi>;
-		};
-	};
-	sound: sound {
-		status = "disabled";
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "rockchip,rt5660-codec";
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,widgets =
-			"Microphone", "Microphone Jack",
-			"Headphone", "Headphone Jack";
-		simple-audio-card,routing =
-			"MIC1", "Microphone Jack",
-			"Microphone Jack", "micbias1",
-			"Headphone Jack", "SPO",
-			"Headphone Jack", "LOUTL",
-			"Headphone Jack", "LOUTR";
-
-		simple-audio-card,dai-link@0 {
-			cpu {
-				sound-dai = <&i2s>;
-			};
-
-			codec {
-				sound-dai = <&rt5660>;
-			};
-		};
-		/*
-		simple-audio-card,dai-link@1 {
-			cpu {
-				sound-dai = <&i2s>;
-			};
-
-			codec {
-				sound-dai = <&hdmi>;
-			};
-		};
-		*/
-	};
-
 	edp_panel {
 		compatible = "simple-panel";
 		status = "disabled";
@@ -431,9 +380,13 @@
 	status = "okay";
 	rockchip,codec = <&rt5660>, <&hdmi>;
 	rockchip,model = "rockchip,rt5660-codec";
+	rockchip,widgets =
+			"Microphone", "Microphone Jack",
+			"Headphone", "Headphone Jack";
 	rockchip,routing =
-		"MIC1", "Microphone Jack",
-		"Microphone Jack", "micbias1",
+		"IN1P", "Microphone Jack",
+		"IN1N", "Microphone Jack",
+		"Microphone Jack", "MICBIAS1",
 		"Headphone Jack", "SPO",
 		"Headphone Jack", "LOUTL",
 		"Headphone Jack", "LOUTR";

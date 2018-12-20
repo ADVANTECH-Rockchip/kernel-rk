@@ -556,7 +556,7 @@
 			vcc_io: DCDC_REG4 {
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <1800000>;
+				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vcc_io";
 				regulator-state-mem {
@@ -579,7 +579,7 @@
 			vcca_33: LDO_REG2 {
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <1800000>;
+				regulator-min-microvolt = <3300000>;
 				regulator-init-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vcca_33";
@@ -606,7 +606,7 @@
 				regulator-boot-on;
 				regulator-min-microvolt = <1800000>;
 				regulator-init-microvolt = <1800000>;
-				regulator-max-microvolt = <3300000>;
+				regulator-max-microvolt = <1800000>;
 				regulator-name = "vcca_18";
 				regulator-state-mem {
 					regulator-off-in-suspend;
@@ -616,7 +616,7 @@
 			vccio_sd: LDO_REG5 {
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <1800000>;
+				regulator-min-microvolt = <3300000>;
 				regulator-init-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vccio_sd";
@@ -656,7 +656,7 @@
 				regulator-boot-on;
 				regulator-min-microvolt = <1800000>;
 				regulator-init-microvolt = <1800000>;
-				regulator-max-microvolt = <3300000>;
+				regulator-max-microvolt = <1800000>;
 				regulator-name = "vcc18_lcd";
 				regulator-state-mem {
 					regulator-off-in-suspend;

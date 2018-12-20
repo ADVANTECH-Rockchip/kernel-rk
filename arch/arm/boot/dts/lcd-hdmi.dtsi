@@ -47,6 +47,27 @@
 			swap-rg = <0>;
 			swap-gb = <0>;
 		};
+		hdmi_2560x1600: hdmi-2560x1600 {
+			screen-type = <SCREEN_RGB>;
+			out-face    = <OUT_P888>;
+			color-mode = <COLOR_RGB>;
+			clock-frequency = <222000000>;
+			hactive = <2560>;
+			vactive = <1600>;
+			hback-porch = <123>;
+			hfront-porch = <50>;
+			vback-porch = <12>;
+			vfront-porch = <4>;
+			hsync-len = <10>;
+			vsync-len = <4>;
+			hsync-active = <1>;
+			vsync-active = <1>;
+			de-active = <0>;
+			pixelclk-active = <0>;
+			swap-rb = <0>;
+			swap-rg = <0>;
+			swap-gb = <0>;
+		};
 		hdmi_2160p: hdmi-2160p {
 			screen-type = <SCREEN_RGB>;
 			out-face    = <OUT_P888>;

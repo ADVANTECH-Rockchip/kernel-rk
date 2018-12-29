@@ -130,7 +130,7 @@
 		rockchip,grf = <&grf>;
 		wifi_chip_type = "rtl8723bs";
 		sdio_vref = <3300>;
-		//keep_wifi_power_on = <1>;
+		keep_wifi_power_on = <1>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_pwr_h>;
 		//pinctrl-1 = <&wifi_enable_h>;

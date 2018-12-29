@@ -290,25 +290,25 @@ static int rfkill_rk_set_power(void *data, bool blocked)
 	if (false == blocked) { 
 
         rfkill_rk_sleep_bt(BT_WAKEUP); // ensure bt is wakeup
-	if (gpio_is_valid(wake_host->io)) {
-		LOG("%s: set bt wake_host pin output high!\n", __func__);
-		gpio_direction_output(wake_host->io, 1);
-		msleep(20);
-	}
+		//if (gpio_is_valid(wake_host->io)) {
+		//LOG("%s: set bt wake_host pin output high!\n", __func__);
+		//gpio_direction_output(wake_host->io, 1);
+		//msleep(20);
+		//}
 
-	if (gpio_is_valid(poweron->io) && gpio_is_valid(wake_host->io))
+		if (gpio_is_valid(poweron->io)/* && gpio_is_valid(wake_host->io)*/)
         {
-		gpio_direction_output(poweron->io, !poweron->enable);
-		msleep(20);
-		gpio_direction_output(poweron->io, poweron->enable);
-		msleep(20);
-		gpio_direction_input(wake_host->io);
-		LOG("%s: set bt wake_host pin input!\n", __func__);
+			//gpio_direction_output(poweron->io, !poweron->enable);
+			//msleep(20);
+			gpio_direction_output(poweron->io, poweron->enable);
+			msleep(20);
+			//gpio_direction_input(wake_host->io);
+			LOG("%s: set bt wake_host pin input!\n", __func__);
         }
 		if (gpio_is_valid(reset->io))
         {
-			gpio_direction_output(reset->io, !reset->enable);
-            msleep(20);
+			//gpio_direction_output(reset->io, !reset->enable);
+            //msleep(20);
 			gpio_direction_output(reset->io, reset->enable);
         }
 
@@ -326,14 +326,14 @@ static int rfkill_rk_set_power(void *data, bool blocked)
         bt_power_state = 1;
     	LOG("bt turn on power\n");
 	} else {
-            if (gpio_is_valid(poweron->io))
-            {      
-                gpio_direction_output(poweron->io, !poweron->enable);
-                msleep(20);
-            }
+        if (gpio_is_valid(poweron->io))
+        {      
+            gpio_direction_output(poweron->io, !poweron->enable);
+            msleep(20);
+        }
 
-            bt_power_state = 0;
-    		LOG("bt shut off power\n");
+        bt_power_state = 0;
+		LOG("bt shut off power\n");
 		if (gpio_is_valid(reset->io))
         {      
 			gpio_direction_output(reset->io, !reset->enable);/* bt reset active*/

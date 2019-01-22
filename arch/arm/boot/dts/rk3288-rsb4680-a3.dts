@@ -874,8 +874,8 @@
 
 &uart2 {
 	status = "okay";
-	dmas = <&dmac_bus_s 4>, <&dmac_bus_s 5>;
-	dma-names = "tx", "rx";
+	//dmas = <&dmac_bus_s 4>, <&dmac_bus_s 5>;
+	//dma-names = "tx", "rx";
 };
 
 &uart3 {

@@ -670,7 +670,9 @@ static int rockchip_lvds_bind(struct device *dev, struct device *master,
 
 	pm_runtime_enable(dev);
 	of_node_put(remote);
+#ifdef CONFIG_ARCH_ADVANTECH
 	of_node_put(timings_np);
+#endif
 	of_node_put(port);
 
 	return 0;
@@ -679,8 +681,10 @@ err_free_connector:
 	drm_connector_cleanup(connector);
 err_free_encoder:
 	drm_encoder_cleanup(encoder);
+#ifdef CONFIG_ARCH_ADVANTECH
 err_put_timings:
 	of_node_put(timings_np);
+#endif
 err_put_remote:
 	of_node_put(remote);
 err_put_port:

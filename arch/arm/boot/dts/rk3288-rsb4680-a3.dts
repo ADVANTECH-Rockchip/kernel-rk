@@ -938,6 +938,18 @@
 	/delete-node/ opp-100000000;
 };
 
+&dmc_opp_table {
+	opp-192000000 {
+		opp-microvolt = <1150000>;
+	};
+	opp-300000000 {
+		opp-microvolt = <1150000>;
+	};
+	opp-396000000 {
+		opp-microvolt = <1150000>;
+	};
+};
+
 &tsadc {
 	rockchip,grf = <&grf>;
 	rockchip,hw-tshut-mode = <1>; /* tshut mode 0:CRU 1:GPIO */

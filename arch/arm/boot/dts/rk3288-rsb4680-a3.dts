@@ -449,8 +449,8 @@
     status = "okay";
     dma-names = "tx", "rx";
     pinctrl-0 = <&uart0_xfer &uart0_cts>;
-    trigger-count = <0>;
-    trigger-timer = <0>;//unit 2ms
+    rx-trigger-count = <0>;
+    rx-trigger-timer = <0>;//unit 2ms
 };
 
 &uart_bb {
@@ -458,8 +458,8 @@
 	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart1_xfer &uart1_rts_gpio>;
-	trigger-count = <0>;
-	trigger-timer = <0>;//unit 2ms
+	rx-trigger-count = <0>;
+	rx-trigger-timer = <0>;//unit 2ms
 };
 
 &uart_dbg {
@@ -472,8 +472,8 @@
 	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart3_xfer &uart3_rts_gpio>;
-	trigger-count = <0>;
-	trigger-timer = <0>;//unit 2ms
+	rx-trigger-count = <0>;
+	rx-trigger-timer = <0>;//unit 2ms
 };
 
 &uart_exp {

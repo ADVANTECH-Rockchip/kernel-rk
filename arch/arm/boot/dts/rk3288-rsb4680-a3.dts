@@ -9,6 +9,8 @@
 #include "lcd-p460hvn02.1.dtsi"
 #include "lcd-lmt101dnmfdd.dtsi"
 #include "lcd-lmt150dngfdd.dtsi"
+#include "lcd-m101nwwb-r3.dtsi"
+#include "lcd-tm070rdhg25.dtsi"
 #include "lcd-hdmi.dtsi"
 #include "lcd-ch7517a.dtsi"
 #include "rk3288-adv-sensor.dtsi"

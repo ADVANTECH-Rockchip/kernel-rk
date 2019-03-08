@@ -805,11 +805,11 @@
 };
 
 &cif_isp0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &isp {
-	status = "okay";
+	status = "disabled";
 	pinctrl-names =
 			"default", "isp_dvp8bit2", "isp_dvp10bit",
 			"isp_dvp12bit", "isp_dvp8bit0", "isp_mipi_fl",
@@ -820,7 +820,7 @@
 };
 
 &isp_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rga {
@@ -928,10 +928,15 @@
 };
 
 &cpu0_opp_table {
+	rockchip,pvtm-number = <7>;
 	/delete-node/ opp-126000000;
 	/delete-node/ opp-216000000;
 	/delete-node/ opp-696000000;
 	/delete-node/ opp-1512000000;
+};
+
+&target {
+	temperature = <105000>;
 };
 
 &gpu_opp_table {

@@ -446,10 +446,12 @@
 &sdio0 {
 	status = "okay";
 	max-frequency = <150000000>;
+	clock-frequency = <50000000>;
+	clock-freq-min-max = <200000 50000000>;
 
 	bus-width = <4>;
 	cap-sd-highspeed;
-	//cap-sdio-irq;
+	cap-sdio-irq;
 	disable-wp;
 	keep-power-in-suspend;
 	mmc-pwrseq = <&sdio_pwrseq>;
@@ -883,14 +885,31 @@
 };
 
 &cpu0_opp_table {
+	rockchip,pvtm-number = <7>;
 	/delete-node/ opp-126000000;
 	/delete-node/ opp-216000000;
 	/delete-node/ opp-696000000;
 	/delete-node/ opp-1512000000;
 };
 
+&target {
+	temperature = <105000>;
+};
+
 &gpu_opp_table {
 	/delete-node/ opp-100000000;
+};
+
+&dmc_opp_table {
+	opp-192000000 {
+		opp-microvolt = <1150000>;
+	};
+	opp-300000000 {
+		opp-microvolt = <1150000>;
+	};
+	opp-396000000 {
+		opp-microvolt = <1150000>;
+	};
 };
 
 &tsadc {

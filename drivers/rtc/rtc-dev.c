@@ -311,9 +311,11 @@ static long rtc_dev_ioctl(struct file *file,
 				return err;
 			rtc_tm_to_time(&tm, &now);
 
+#ifndef CONFIG_ARCH_ADVANTECH
 			alarm.time.tm_mday = tm.tm_mday;
 			alarm.time.tm_mon = tm.tm_mon;
 			alarm.time.tm_year = tm.tm_year;
+#endif
 			err  = rtc_valid_tm(&alarm.time);
 			if (err < 0)
 				return err;

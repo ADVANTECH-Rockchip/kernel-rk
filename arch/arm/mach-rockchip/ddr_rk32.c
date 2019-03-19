@@ -3726,6 +3726,7 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
 		else
 			down_dclk_en = 0;
 	}
+
     param.arm_freq = ddr_get_pll_freq(APLL);
     gpllvaluel = ddr_get_pll_freq(GPLL);
     if((200 < gpllvaluel) ||( gpllvaluel <1600))      //GPLL:200MHz~1600MHz
@@ -3776,12 +3777,12 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     }
 #endif
 	rk_fb_set_prmry_screen_status(SCREEN_PREPARE_DDR_CHANGE);
-	if ((screen.lcdc_id == 0) && down_dclk_en)
+	/*if ((screen.lcdc_id == 0) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
 			   RK3288_CRU_CLKSELS_CON(27));
 	else if ((screen.lcdc_id == 1) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(29));
+			   RK3288_CRU_CLKSELS_CON(29));*/
 
     for(i=0;i<SRAM_SIZE/4096;i++)
     {
@@ -3810,13 +3811,13 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     call_with_stack(fn_to_pie(rockchip_pie_chunk, &FUNC(ddr_change_freq_sram)),
                     &param,
                     rockchip_sram_stack-(NR_CPUS-1)*PAUSE_CPU_STACK_SIZE);
-
+/*
 	if ((screen.lcdc_id == 0) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
 		RK3288_CRU_CLKSELS_CON(27));
 	else if ((screen.lcdc_id == 1) && down_dclk_en)
 		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
-		RK3288_CRU_CLKSELS_CON(29));
+		RK3288_CRU_CLKSELS_CON(29));*/
 	rk_fb_set_prmry_screen_status(SCREEN_UNPREPARE_DDR_CHANGE);
 
 #if defined (DDR_CHANGE_FREQ_IN_LCDC_VSYNC)

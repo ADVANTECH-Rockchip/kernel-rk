@@ -7,7 +7,8 @@
 #include "lcd-hdmi.dtsi"
 //#include "rk3288-adv-sensor.dtsi"
 / {
-	model = "USM-110 a102-1";
+	//format:board-name hw-version swversion
+	model = "USM-110 a102-1 V0000";
 	aliases {
 		ethernet0 = &gmac;
 		lvds = &lvds;

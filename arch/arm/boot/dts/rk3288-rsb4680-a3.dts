@@ -15,7 +15,8 @@
 #include "lcd-ch7517a.dtsi"
 #include "rk3288-adv-sensor.dtsi"
 / {
-	model = "RSB-4680 a103-1";
+	//format:board-name hw-version swversion
+	model = "RSB-4680 a103-1 V0000";
 	aliases {
 		ethernet0 = &gmac;
 		lvds = &lvds;

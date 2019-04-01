@@ -10,8 +10,8 @@
 #include "lcd-hdmi.dtsi"
 //#include "rk3288-adv-sensor.dtsi"
 / {
-	//format:board-name hw-version swversion
-	model = "EBC-RB03 a102-1 V0000";
+	//format:board-name boardSN swversion
+	model = "EBC-RB03 AKS00000000 V2400";
 	aliases {
 		ethernet0 = &gmac;
 		lvds = &lvds;

@@ -13,8 +13,8 @@
 #include "lcd-NT156FHM-N43.dtsi"
 #include "rk3288-adv-sensor.dtsi"
 / {
-	//format:board-name hw-version swversion
-	model = "USC-130-160 a101-1 V0000";
+	//format:board-name boardSN swversion
+	model = "USC-130-160 AKS00000000 V2400";
 	aliases {
 		ethernet0 = &gmac;
 		lvds = &lvds;

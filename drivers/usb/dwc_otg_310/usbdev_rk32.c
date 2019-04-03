@@ -684,7 +684,9 @@ struct rkehci_platform_data rkohci_pdata_rk3288 = {
 static inline void do_wakeup(struct work_struct *work)
 {
 	/* wake up the system */
+#ifndef CONFIG_ARCH_ADVANTECH
 	rk_send_wakeup_key();
+#endif
 }
 
 static void usb_battery_charger_detect_work(struct work_struct *work)

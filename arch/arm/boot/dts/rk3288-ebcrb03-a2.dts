@@ -55,7 +55,7 @@
 
 / {
 	compatible = "rockchip,rk3288-ebcrb03-a2", "rockchip,rk3288";
-	model = "EBC-RB03 a102-1";
+	model = "EBC-RB03 AKS00000000 V1000";
 
 	aliases {
 		hdmi = &hdmi;
@@ -67,8 +67,7 @@
 	};
 	
 	chosen {
-		//bootargs = "earlyprintk vmalloc=496M quiet";
-		bootargs = "earlyprintk vmalloc=496M";
+		bootargs = "earlyprintk vmalloc=496M quiet androidboot.selinux=permissive";
 	};
 	
 	fiq-debugger {

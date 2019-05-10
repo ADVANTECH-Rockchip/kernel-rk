@@ -198,6 +198,7 @@
 			linux,code = <116>;
 			label = "power";
 			gpio-key,wakeup;
+                        polling-release-time = <1000>;//unit:ms
 		};
 	};		
 

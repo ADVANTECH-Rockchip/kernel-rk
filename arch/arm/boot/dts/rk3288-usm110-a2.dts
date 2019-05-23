@@ -8,7 +8,7 @@
 //#include "rk3288-adv-sensor.dtsi"
 / {
 	//format:board-name boardSN swversion
-	model = "USM-110 AKS00000000 V2400";
+	model = "USM-110 AKS00000000 V2500";
 	aliases {
 		ethernet0 = &gmac;
 		lvds = &lvds;

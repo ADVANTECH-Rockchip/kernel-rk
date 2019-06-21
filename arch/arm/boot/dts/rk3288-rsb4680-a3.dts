@@ -962,8 +962,13 @@
 	/delete-property/ pinctrl-7;
 	/delete-property/ pinctrl-8;
 	/delete-property/ rockchip,gpios;
+	status = "disabled";
+};
+
+&cif{
+	status = "disabled";
 };
 
 &rk3288_cif_sensor{
-	status = "okay";
+	status = "disabled";
 };

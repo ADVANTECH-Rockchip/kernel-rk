@@ -170,6 +170,12 @@ static const struct usb_device_id usb_quirk_list[] = {
 	/* INTEL VALUE SSD */
 	{ USB_DEVICE(0x8086, 0xf1a5), .driver_info = USB_QUIRK_RESET_RESUME },
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	{ USB_DEVICE(0x05a3, 0x9230), .driver_info = USB_QUIRK_AUTO_SUSPEND },
+	{ USB_DEVICE(0x05a3, 0x9320), .driver_info = USB_QUIRK_AUTO_SUSPEND },
+	{ USB_DEVICE(0x046d, 0x0825), .driver_info = USB_QUIRK_AUTO_SUSPEND },
+	{ USB_DEVICE(0x2394, 0x1001), .driver_info = USB_QUIRK_AUTO_SUSPEND },
+#endif
 	{ }  /* terminating entry must be last */
 };
 

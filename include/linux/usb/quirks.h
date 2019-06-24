@@ -33,4 +33,8 @@
 /* device generates spurious wakeup, ignore remote wakeup capability */
 #define USB_QUIRK_IGNORE_REMOTE_WAKEUP	0x00000200
 
+#ifdef CONFIG_ARCH_ADVANTECH
+#define USB_QUIRK_AUTO_SUSPEND 0x00000400
+#endif
+
 #endif /* __LINUX_USB_QUIRKS_H */

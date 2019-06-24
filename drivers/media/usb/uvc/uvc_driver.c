@@ -22,6 +22,9 @@
 #include <linux/wait.h>
 #include <linux/version.h>
 #include <asm/unaligned.h>
+#ifdef CONFIG_ARCH_ADVANTECH
+#include <linux/usb/quirks.h>
+#endif
 
 #include <media/v4l2-common.h>
 
@@ -1692,6 +1695,21 @@ static void uvc_unregister_video(struct uvc_device *dev)
 		uvc_delete(dev);
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+static int get_video_dev_no(struct uvc_device *dev)
+{
+	// back camera
+	if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x05a3) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x9230))
+		return 0;
+	
+	// front camera
+	if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x0c45) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x64ab))
+		return 1;
+	
+	return -1;
+}
+#endif
+
 static int uvc_register_video(struct uvc_device *dev,
 		struct uvc_streaming *stream)
 {
@@ -1736,8 +1754,12 @@ static int uvc_register_video(struct uvc_device *dev,
 	 */
 	stream->vdev = vdev;
 	video_set_drvdata(vdev, stream);
-
+	
+#ifdef CONFIG_ARCH_ADVANTECH
+	ret = video_register_device(vdev, VFL_TYPE_GRABBER, get_video_dev_no(dev));
+#else
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
+#endif
 	if (ret < 0) {
 		uvc_printk(KERN_ERR, "Failed to register video device (%d).\n",
 			   ret);
@@ -1914,7 +1936,13 @@ static int uvc_probe(struct usb_interface *intf,
 	}
 
 	uvc_trace(UVC_TRACE_PROBE, "UVC device initialized.\n");
-	usb_enable_autosuspend(udev);
+#ifdef CONFIG_ARCH_ADVANTECH
+    if (udev->quirks & USB_QUIRK_AUTO_SUSPEND || udev->parent->quirks & USB_QUIRK_AUTO_SUSPEND)
+        uvc_printk(KERN_INFO, "auto-suspend is blacklisted for this device\n");
+    else
+#endif
+        usb_enable_autosuspend(udev);
+
 	return 0;
 
 error:

@@ -460,8 +460,8 @@
 	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart1_xfer &uart1_rts_gpio>;
-	rx-trigger-count = <0>;
-	rx-trigger-timer = <0>;//unit 2ms
+	rx-trigger-count = <32>;
+	rx-trigger-timer = <5>;//unit 2ms
 };
 
 &uart_dbg {
@@ -474,8 +474,8 @@
 	dma-names = "tx", "rx";
 	pinctrl-names = "default","rts_gpio";
 	pinctrl-1 = <&uart3_xfer &uart3_rts_gpio>;
-	rx-trigger-count = <0>;
-	rx-trigger-timer = <0>;//unit 2ms
+	rx-trigger-count = <32>;
+	rx-trigger-timer = <5>;//unit 2ms
 };
 
 &uart_exp {
@@ -485,8 +485,8 @@
 	pinctrl-1 = <&uart4_xfer &uart4_rts_gpio>;
 	uart-sel-gpio = <&gpio5 GPIO_C0 GPIO_ACTIVE_HIGH>;
 	rs485-dir-gpio = <&gpio5 GPIO_B5 GPIO_ACTIVE_LOW>;
-	rx-trigger-count = <0>;
-	rx-trigger-timer = <0>;//unit 2ms
+	rx-trigger-count = <32>;
+	rx-trigger-timer = <5>;//unit 2ms
 };
 
 &i2c0 {

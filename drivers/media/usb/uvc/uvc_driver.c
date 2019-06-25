@@ -1696,16 +1696,33 @@ static void uvc_unregister_video(struct uvc_device *dev)
 }
 
 #ifdef CONFIG_ARCH_ADVANTECH
+static u32 dual_cam_index = 0;
+static int __init setup_fix_dual_camera_index(char *buf)
+{
+	if(strlen(buf) != strlen("yes")) {
+		dual_cam_index = 0;
+		return 0;
+	}
+	if (!memcmp(buf,"yes",strlen("yes")))
+		dual_cam_index = 1;
+	else
+		dual_cam_index = 0;
+	
+	return 0;
+}
+early_param("fix_dual_camera_index", setup_fix_dual_camera_index);
+
 static int get_video_dev_no(struct uvc_device *dev)
 {
-	// back camera
-	if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x05a3) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x9230))
-		return 0;
-	
-	// front camera
-	if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x0c45) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x64ab))
-		return 1;
-	
+	if(dual_cam_index) {
+		// back camera
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x05a3) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x9230))
+			return 0;
+
+		// front camera
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x0c45) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x64ab))
+			return 1;
+	}
 	return -1;
 }
 #endif

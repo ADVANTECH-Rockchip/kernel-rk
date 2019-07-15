@@ -155,6 +155,10 @@ static void uvc_fixup_video_ctrl(struct uvc_streaming *stream,
 	}
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+extern u32 dual_cam_index;
+#endif
+
 static int uvc_get_video_ctrl(struct uvc_streaming *stream,
 	struct uvc_streaming_control *ctrl, int probe, __u8 query)
 {
@@ -217,6 +221,11 @@ static int uvc_get_video_ctrl(struct uvc_streaming *stream,
 	ctrl->dwMaxVideoFrameSize = get_unaligned_le32(&data[18]);
 	ctrl->dwMaxPayloadTransferSize = get_unaligned_le32(&data[22]);
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	if((ctrl->dwMaxPayloadTransferSize > 0x200) && dual_cam_index){
+		ctrl->dwMaxPayloadTransferSize =  0x200;
+	}
+#endif
 	if (size == 34) {
 		ctrl->dwClockFrequency = get_unaligned_le32(&data[26]);
 		ctrl->bmFramingInfo = data[30];

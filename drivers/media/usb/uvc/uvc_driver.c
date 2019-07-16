@@ -1696,7 +1696,7 @@ static void uvc_unregister_video(struct uvc_device *dev)
 }
 
 #ifdef CONFIG_ARCH_ADVANTECH
-static u32 dual_cam_index = 0;
+u32 dual_cam_index = 0;
 static int __init setup_fix_dual_camera_index(char *buf)
 {
 	if(strlen(buf) != strlen("yes")) {

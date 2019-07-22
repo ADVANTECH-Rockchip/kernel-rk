@@ -1856,6 +1856,38 @@ static void uvc_unregister_video(struct uvc_device *dev)
 		uvc_delete(dev);
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+u32 dual_cam_index = 0;
+static int __init setup_fix_dual_camera_index(char *buf)
+{
+	if(strlen(buf) != strlen("yes")) {
+		dual_cam_index = 0;
+		return 0;
+	}
+	if (!memcmp(buf,"yes",strlen("yes")))
+		dual_cam_index = 1;
+	else
+		dual_cam_index = 0;
+
+	return 0;
+}
+early_param("fix_dual_camera_index", setup_fix_dual_camera_index);
+
+static int get_video_dev_no(struct uvc_device *dev)
+{
+	if(dual_cam_index) {
+		// back camera
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x05a3) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x9230))
+			return 0;
+
+		// front camera
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x0c45) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x64ab))
+			return 1;
+	}
+	return -1;
+}
+#endif
+
 static int uvc_register_video(struct uvc_device *dev,
 		struct uvc_streaming *stream)
 {
@@ -1899,7 +1931,11 @@ static int uvc_register_video(struct uvc_device *dev,
 	 */
 	video_set_drvdata(vdev, stream);
 
+#ifdef CONFIG_ARCH_ADVANTECH
+	ret = video_register_device(vdev, VFL_TYPE_GRABBER, get_video_dev_no(dev));
+#else
 	ret = video_register_device(vdev, VFL_TYPE_GRABBER, -1);
+#endif
 	if (ret < 0) {
 		uvc_printk(KERN_ERR, "Failed to register video device (%d).\n",
 			   ret);

@@ -909,6 +909,9 @@
 	opp-396000000 {
 		opp-microvolt = <1150000>;
 	};
+        opp-528000000 {
+                opp-microvolt = <1150000>;
+        };
 };
 
 &tsadc {

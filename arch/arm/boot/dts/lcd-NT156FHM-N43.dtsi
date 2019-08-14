@@ -9,13 +9,13 @@
 		edp_NT156FHM_N43: edp-NT156FHM-N43 {
 			screen-type = <SCREEN_EDP>;
 			out-face    = <OUT_P888>;
-			clock-frequency = <141400000>;
+			clock-frequency = <152600000>;
 			hactive = <1920>;
 			vactive = <1080>;
-			hback-porch = <420>;
-			hfront-porch = <111>;
-			vback-porch = <420>;
-			vfront-porch = <111>;
+			hback-porch = <300>;
+			hfront-porch = <10>;
+			vback-porch = <50>;
+			vfront-porch = <10>;
 			hsync-len = <10>;
 			vsync-len = <10>;
 			hsync-active = <1>;

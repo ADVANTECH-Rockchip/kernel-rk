@@ -11,6 +11,7 @@
 #include "lcd-lmt150dngfdd.dtsi"
 #include "lcd-m101nwwb-r3.dtsi"
 #include "lcd-tm070rdhg25.dtsi"
+#include "lcd-NT156WHM-N50.dtsi"
 #include "lcd-hdmi.dtsi"
 #include "lcd-ch7517a.dtsi"
 #include "rk3288-adv-sensor.dtsi"

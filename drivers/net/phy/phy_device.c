@@ -1081,12 +1081,12 @@ int genphy_read_status(struct phy_device *phydev)
 			//TI dp83867
 			if(0x2000a231 == phydev->phy_id) {
 				lpagb = phy_read(phydev, MII_STAT1000);
-				if(!(0x3000 & lpagb)) {
+				if(!(0xc00 & lpagb)) {
 					lpagb = phy_read(phydev, 0x11);
-				if(0x4000 == (lpagb & 0xc000))
-					phydev->speed = SPEED_100;
-				if(0x2000 == (lpagb & 0x2000))
-					phydev->duplex = DUPLEX_FULL;
+					if(0x4000 == (lpagb & 0xc000))
+						phydev->speed = SPEED_100;
+					if(0x2000 == (lpagb & 0x2000))
+						phydev->duplex = DUPLEX_FULL;
 				}
 			}
 #endif 

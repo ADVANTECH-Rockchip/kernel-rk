@@ -244,11 +244,17 @@
 	rx_delay = <0x0>;//mac rx delay
 	gmac_v18sel = <1>;//rgmii 1.8v/3.3v voltage
 	phy_reg_config = <//address mask value
+						//SPEED_OPT_EN
 						0x0014 0x200 0x200
+						//LED Configuration
 						0x0018 0xfff 0x65b
+						//Robust Auto-MDIX
 						0x001e 0x200 0x200
+						//TX/RX_CLK_DELAY
 						0x0032 0x3 0x3
+						//RGMII Delay time:ns
 						0x0086 0xff 0x80
+						//Clock Output Select
 						0x0170 0x1f00 0x0000
 					>;
 	status = "okay";

@@ -2968,7 +2968,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
                size_t count, loff_t *offset)
 {
 	int i,addr;
-	char line[8];
+	char line[32],*p;
 	int ret;
 	struct platform_device *pdev = (struct platform_device *)gdev;
 	struct net_device *ndev = platform_get_drvdata(pdev);
@@ -3014,7 +3014,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 	else
 		return -ENODEV;
 	
-	if (strstr(line, "1"))
+	if (!memcmp(line, "1", 1))
 	{
 		printk("1000M BASE-T test mode 1\n");
 		if(TI_DP83867_PHY_ID == phydev->phy_id)
@@ -3028,7 +3028,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x2200);
 		}
 	}
-	else if (strstr(line, "2"))
+	else if (!memcmp(line, "2", 1))
 	{
 		if(TI_DP83867_PHY_ID == phydev->phy_id)
 		{
@@ -3040,7 +3040,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x4200);
 		}
 	}
-	else if (strstr(line, "3"))
+	else if (!memcmp(line, "3", 1))
 	{
 		if(TI_DP83867_PHY_ID == phydev->phy_id)
 		{
@@ -3052,7 +3052,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x6200);
 		}
 	}
-	else if (strstr(line, "4"))
+	else if (!memcmp(line, "4", 1))
 	{
 		printk("1000M BASE-T test mode 4\n");
 		if(TI_DP83867_PHY_ID == phydev->phy_id)
@@ -3065,7 +3065,7 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 			stmmac->mii->write(stmmac->mii, addr, 0x09, 0x8200);
 		}
 	}
-	else if (strstr(line, "5"))
+	else if (!memcmp(line, "5", 1))
 	{
 		printk("100M BASE-TX test mode 5\n");
 		if(TI_DP83867_PHY_ID == phydev->phy_id)
@@ -3073,6 +3073,42 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 			stmmac->mii->write(stmmac->mii, addr, 0x00, 0x2100);//programs DUT to 100Base-TX Mode
 			stmmac->mii->write(stmmac->mii, addr, 0x09, 0xBB00);//Test Mode 5
 			phy_write_mmd_indirect(phydev, 0x25, DP83867_DEVADDR, 0x0480);//output test mode to all channels
+		}
+	}
+	else if (!memcmp(line, "6", 1))
+	{
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			printk("Basic Register:\n");
+			printk("0x00~0x0f:");
+			for(i=0;i<0x10;i++)
+				printk("0x%04x ",phy_read(phydev, i));
+			printk("\n0x10~0x1f:");
+			for(i=0x10;i<0x20;i++)
+				printk("0x%04x ",phy_read(phydev, i));
+			printk("\n");
+			printk("PHY REG 0x0031=0x%x\n",phy_read_mmd_indirect(phydev, 0x0031, DP83867_DEVADDR));
+			printk("PHY REG 0x0032=0x%x\n",phy_read_mmd_indirect(phydev, 0x0032, DP83867_DEVADDR));
+			printk("PHY REG 0x006e=0x%x\n",phy_read_mmd_indirect(phydev, 0x006e, DP83867_DEVADDR));
+			printk("PHY REG 0x006f=0x%x\n",phy_read_mmd_indirect(phydev, 0x006f, DP83867_DEVADDR));
+			printk("PHY REG 0x0086=0x%x\n",phy_read_mmd_indirect(phydev, 0x0086, DP83867_DEVADDR));
+			printk("PHY REG 0x0170=0x%x\n",phy_read_mmd_indirect(phydev, 0x0170, DP83867_DEVADDR));
+		}
+	}
+	else if (!memcmp(line, "7", 1))
+	{
+		if(TI_DP83867_PHY_ID == phydev->phy_id)
+		{
+			p = line;
+			p=strstr(p," ");
+			addr=simple_strtoul(p+1, NULL, 16);
+			p=strstr(p+1," ");
+			i=simple_strtoul(p+1, NULL, 16);
+			printk("write phy register 0x%x=0x%x\n",addr,i);
+			if(addr < 0x20)
+				phy_write(phydev, addr, i);
+			else
+				phy_write_mmd_indirect(phydev, addr, DP83867_DEVADDR, i);
 		}
 	}
 
@@ -3114,7 +3150,7 @@ static int gmac_delay_write(struct file *file, const char __user * buffer,
 static int phy_delay_write(struct file *file, const char __user * buffer,
                size_t count, loff_t *offset)
 {
-	unsigned int i,tx_delay,rx_delay;
+	unsigned int i,enable,tx_delay,rx_delay;
 	char line[32],*p;
 	int ret;
 	struct platform_device *pdev = (struct platform_device *)gdev;
@@ -3140,19 +3176,22 @@ static int phy_delay_write(struct file *file, const char __user * buffer,
 	phydev = stmmac->mii->phy_map[i];
 
 	p = line;
-	tx_delay=simple_strtoul(p, NULL, 16);
+	enable=simple_strtoul(p, NULL, 16);
 	p=strstr(p," ");
+	tx_delay=simple_strtoul(p+1, NULL, 16);
+	p=strstr(p+1," ");
 	rx_delay=simple_strtoul(p+1, NULL, 16);
-	printk("phy tx_delay:0x%x,rx_delay:0x%x\n",tx_delay,rx_delay);
+	printk("phy enable delay:%x,tx_delay:0x%x,rx_delay:0x%x\n",enable,tx_delay,rx_delay);
 
 	if(TI_DP83867_PHY_ID == phydev->phy_id)
 	{
+		enable &= 0x3;
 		tx_delay &= 0xf;
 		rx_delay &= 0xf;
 
 		ret = phy_read_mmd_indirect(phydev, DP83867_RGMIICTL,DP83867_DEVADDR);
-		ret |= (DP83867_RGMII_TX_CLK_DELAY_EN |
-			DP83867_RGMII_RX_CLK_DELAY_EN);
+		ret &= ~(DP83867_RGMII_TX_CLK_DELAY_EN | DP83867_RGMII_RX_CLK_DELAY_EN);
+		ret |= enable;
 		phy_write_mmd_indirect(phydev, DP83867_RGMIICTL,
 					   DP83867_DEVADDR, ret);
 		phy_write_mmd_indirect(phydev, DP83867_RGMIIDCTL,

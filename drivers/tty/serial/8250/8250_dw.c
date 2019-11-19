@@ -443,11 +443,13 @@ cont:
 	}
 
 	if (data->wait_count)
-		hrtimer_start(&data->tx_timer, ns_to_ktime(2000000), HRTIMER_MODE_REL);
+		hrtimer_start(&data->tx_timer, ns_to_ktime(500000), HRTIMER_MODE_REL);
 
 ret:
-	if(set)
+	if(set){
+		data->tx_dma_enabled=0;
 		gpio_direction_output(data->rs485_gpio,!data->rs485_tx_active);
+	}
 	return HRTIMER_NORESTART;
 }
 

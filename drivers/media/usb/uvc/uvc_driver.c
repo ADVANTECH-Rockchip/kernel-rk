@@ -1696,31 +1696,50 @@ static void uvc_unregister_video(struct uvc_device *dev)
 }
 
 #ifdef CONFIG_ARCH_ADVANTECH
-u32 dual_cam_index = 0;
-static int __init setup_fix_dual_camera_index(char *buf)
+u32 dual_cam_index0 = 0;
+u32 dual_cam_index1 = 0;
+
+static int __init setup_fix_dual_camera_index0(char *buf)
 {
-	if(strlen(buf) != strlen("yes")) {
-		dual_cam_index = 0;
-		return 0;
-	}
-	if (!memcmp(buf,"yes",strlen("yes")))
-		dual_cam_index = 1;
-	else
-		dual_cam_index = 0;
+	char *p;
+	
+	if (!buf)
+		return -EINVAL;
+
+	dual_cam_index0 = simple_strtol(buf, NULL, 16);
+	p = strstr(buf,":");
+	dual_cam_index0 = (dual_cam_index0<<16) | simple_strtol(p+1, NULL, 16);
 	
 	return 0;
 }
-early_param("fix_dual_camera_index", setup_fix_dual_camera_index);
+early_param("fix_camera_index0", setup_fix_dual_camera_index0);
+
+static int __init setup_fix_dual_camera_index1(char *buf)
+{
+	char *p;
+	
+	if (!buf)
+		return -EINVAL;
+
+	dual_cam_index1 = simple_strtol(buf, NULL, 16);
+	p = strstr(buf,":");
+	dual_cam_index1 = (dual_cam_index1<<16) | simple_strtol(p+1, NULL, 16);
+
+	return 0;
+}
+early_param("fix_camera_index1", setup_fix_dual_camera_index1);
 
 static int get_video_dev_no(struct uvc_device *dev)
 {
-	if(dual_cam_index) {
+	if(dual_cam_index0) {
 		// back camera
-		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x05a3) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x9230))
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == (dual_cam_index0>>16)) && (le16_to_cpu(dev->udev->descriptor.idProduct) == (dual_cam_index0&0xffff)))
 			return 0;
+	}
 
+	if(dual_cam_index1) {
 		// front camera
-		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == 0x0c45) && (le16_to_cpu(dev->udev->descriptor.idProduct) == 0x64ab))
+		if ((le16_to_cpu(dev->udev->descriptor.idVendor) == (dual_cam_index1>>16)) && (le16_to_cpu(dev->udev->descriptor.idProduct) == (dual_cam_index1&0xffff)))
 			return 1;
 	}
 	return -1;

@@ -974,6 +974,9 @@ void video_unregister_device(struct video_device *vdev)
 	 * Once this bit has been cleared video_get may never be called again.
 	 */
 	clear_bit(V4L2_FL_REGISTERED, &vdev->flags);
+#ifdef CONFIG_ARCH_ADVANTECH
+	devnode_clear(vdev);
+#endif
 	mutex_unlock(&videodev_lock);
 	device_unregister(&vdev->dev);
 }

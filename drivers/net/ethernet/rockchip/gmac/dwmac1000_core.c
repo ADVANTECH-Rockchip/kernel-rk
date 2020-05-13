@@ -196,6 +196,9 @@ static void dwmac1000_pmt(void __iomem *ioaddr, unsigned long mode)
 	writel(pmt, ioaddr + GMAC_PMT);
 }
 
+#ifdef CONFIG_ARCH_ADVANTECH
+extern void rk_send_wakeup_key(void);
+#endif
 static int dwmac1000_irq_status(void __iomem *ioaddr,
 				struct stmmac_extra_stats *x)
 {
@@ -223,6 +226,10 @@ static int dwmac1000_irq_status(void __iomem *ioaddr,
 		/* clear the PMT bits 5 and 6 by reading the PMT status reg */
 		readl(ioaddr + GMAC_PMT);
 		x->irq_receive_pmt_irq_n++;
+#ifdef CONFIG_ARCH_ADVANTECH
+		//wakeup OS from suspend mode
+		rk_send_wakeup_key();
+#endif
 	}
 	/* MAC trx/rx EEE LPI entry/exit interrupts */
 	if (intr_status & lpiis_irq) {

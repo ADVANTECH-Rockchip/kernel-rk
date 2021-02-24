@@ -3115,6 +3115,26 @@ static int net_testmode_write(struct file *file, const char __user * buffer,
 	return count;
 }
 
+static int gmac_delay_read(struct file *file, char __user * buffer,
+               size_t count, loff_t *offset)
+{
+	unsigned int delay;
+	char *buf;
+	int ret;
+
+	buf = kzalloc(8, GFP_KERNEL);
+	if (!buf)
+		return 0;
+
+	delay = readl_relaxed(RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
+	printk("gmac delay:0x%x\n",delay);
+	snprintf(buf, 8, "0x%x\n", delay);
+
+	ret = simple_read_from_buffer(buffer, count, offset, buf, 8);
+	kfree(buf);
+	return ret; 
+}
+
 static int gmac_delay_write(struct file *file, const char __user * buffer,
                size_t count, loff_t *offset)
 {
@@ -3145,6 +3165,44 @@ static int gmac_delay_write(struct file *file, const char __user * buffer,
 	else
 		writel_relaxed((0x407F << 16) | (0<<14), RK_GRF_VIRT + RK3288_GRF_SOC_CON3);
 	return count;
+}
+
+static ssize_t phy_delay_read(struct file *file, char __user *buffer,
+    size_t count, loff_t *offset)
+{
+	unsigned int i;
+	int ret;
+	struct platform_device *pdev = (struct platform_device *)gdev;
+	struct net_device *ndev = platform_get_drvdata(pdev);
+	struct stmmac_priv *stmmac = netdev_priv(ndev);
+	struct phy_device *phydev;
+	char *buf;
+
+	buf = kzalloc(16, GFP_KERNEL);
+	if (!buf)
+		return 0;
+
+	for (i = 0 ; i < PHY_MAX_ADDR; i++)
+	{
+		if (stmmac->mii->phy_map[i] && stmmac->mii->phy_map[i]->phy_id)
+			break;
+	}
+	if(i >= PHY_MAX_ADDR)
+		return -ENODEV;
+	phydev = stmmac->mii->phy_map[i];
+
+	ret = phy_read_mmd_indirect(phydev, DP83867_RGMIICTL,DP83867_DEVADDR);
+	ret &= (DP83867_RGMII_TX_CLK_DELAY_EN | DP83867_RGMII_RX_CLK_DELAY_EN);
+	buf[0] = ret;
+	ret = phy_read_mmd_indirect(phydev, DP83867_RGMIIDCTL,DP83867_DEVADDR);
+	buf[1] = ret;
+
+	printk("phy delay enable:0x%x,value:0x%x\n",buf[0],buf[1]);
+
+	snprintf(buf, 16, "0x%x:0x%x\n", buf[0], buf[1]);
+	ret = simple_read_from_buffer(buffer, count, offset, buf, 16);
+	kfree(buf);
+	return ret; 
 }
 
 static int phy_delay_write(struct file *file, const char __user * buffer,
@@ -3208,10 +3266,12 @@ static const struct file_operations net_testmode_fops = {
 static const struct file_operations gmac_delay_fops = {
 	.owner = THIS_MODULE,
 	.write = gmac_delay_write,
+	.read = gmac_delay_read,
 };
 static const struct file_operations phy_delay_fops = {
 	.owner = THIS_MODULE,
 	.write = phy_delay_write,
+	.read =	phy_delay_read,
 };
 #endif
 
@@ -3488,7 +3548,7 @@ int stmmac_resume(struct net_device *ndev)
 	if (priv->phydev)
 		phy_start(priv->phydev);
 
-	if (bsp_priv && (bsp_priv->chip == RK322X_GMAC) && (bsp_priv->internal_phy)) {
+	if ((bsp_priv->chip == RK322X_GMAC) && (bsp_priv->internal_phy)) {
 		rk322x_phy_adjust(priv->phydev);
 	}
 

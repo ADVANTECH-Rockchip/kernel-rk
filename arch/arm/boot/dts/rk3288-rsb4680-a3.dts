@@ -253,7 +253,7 @@
 						//TX/RX_CLK_DELAY
 						0x0032 0x3 0x3
 						//RGMII Delay time:ns
-						0x0086 0xff 0x80
+						0x0086 0xff 0x44
 						//Clock Output Select
 						0x0170 0x1f00 0x0000
 					>;
@@ -846,8 +846,7 @@
 			regulator-boot-on;
 			regulator-initial-state = <3>;
 			regulator-state-mem {
-				regulator-state-mode = <0x2>;
-				regulator-state-enabled;
+				regulator-state-disabled;
 				regulator-state-uv = <1800000>;
 			};
 		};

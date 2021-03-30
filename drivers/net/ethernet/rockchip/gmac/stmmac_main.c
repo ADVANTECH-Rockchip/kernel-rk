@@ -3548,7 +3548,7 @@ int stmmac_resume(struct net_device *ndev)
 	if (priv->phydev)
 		phy_start(priv->phydev);
 
-	if ((bsp_priv->chip == RK322X_GMAC) && (bsp_priv->internal_phy)) {
+	if (bsp_priv && (bsp_priv->chip == RK322X_GMAC) && (bsp_priv->internal_phy)) {
 		rk322x_phy_adjust(priv->phydev);
 	}
 

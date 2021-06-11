@@ -1972,12 +1972,9 @@ static int uvc_probe(struct usb_interface *intf,
 	}
 
 	uvc_trace(UVC_TRACE_PROBE, "UVC device initialized.\n");
-#ifdef CONFIG_ARCH_ADVANTECH
-    if (udev->quirks & USB_QUIRK_AUTO_SUSPEND || udev->parent->quirks & USB_QUIRK_AUTO_SUSPEND)
-        uvc_printk(KERN_INFO, "auto-suspend is blacklisted for this device\n");
-    else
+#ifndef CONFIG_ARCH_ADVANTECH
+	usb_enable_autosuspend(udev);
 #endif
-        usb_enable_autosuspend(udev);
 
 	return 0;
 

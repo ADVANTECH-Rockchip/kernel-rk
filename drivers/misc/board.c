@@ -1,7 +1,7 @@
 /*
  * Board Procfs information.
  *
- * Copyright (c) 2017 Chang.Qing <chang.qing@advantech.com.cn>
+ * Copyright (c) 2020 Advantech Co., Ltd 
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,7 +19,6 @@
 #include <asm/uaccess.h>
 
 static const char *machine=NULL;  /* board name */
-
 
 static const char * of_get_machine_name(void)
 {
@@ -89,5 +88,4 @@ static void __exit proc_board_exit(void)
 module_exit(proc_board_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Board Information");
-MODULE_AUTHOR("Chang Qing <chang.qing@advantech.com.cn>");
+MODULE_DESCRIPTION("Advantech Board Information");
